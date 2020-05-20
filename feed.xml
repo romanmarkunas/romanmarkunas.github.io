@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
     <channel>
-        <title>BlogInn</title>
-        <description>BlogInn is a bold theme for the Jekyll blogging platform. Available for purchase at ThemeForest.net.</description>
-        <link>https://justgoodthemes.com/</link>
-        <atom:link href="https://justgoodthemes.com/feed.xml" rel="self" type="application/rss+xml"/>
-        <pubDate>Tue, 19 May 2020 10:44:46 +0100</pubDate>
-        <lastBuildDate>Tue, 19 May 2020 10:44:46 +0100</lastBuildDate>
+        <title>Roman Markunas (Romans Markuns) blog</title>
+        <description>Java, performance and design tips by Roman Markunas (Romans Markuns)</description>
+        <link>https://romanmarkunas.github.io/</link>
+        <atom:link href="https://romanmarkunas.github.io/feed.xml" rel="self" type="application/rss+xml"/>
+        <pubDate>Wed, 20 May 2020 12:22:11 +0100</pubDate>
+        <lastBuildDate>Wed, 20 May 2020 12:22:11 +0100</lastBuildDate>
         <generator>Jekyll v4.0.1</generator>
         
             <item>
@@ -199,8 +199,8 @@ Fiber execution took 1661 ms
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
 </description>
                 <pubDate>Mon, 02 Apr 2018 00:00:00 +0100</pubDate>
-                <link>https://justgoodthemes.com/concurrency/2018/04/02/0002-concurrency-introduction-to-java-coroutines/</link>
-                <guid isPermaLink="true">https://justgoodthemes.com/concurrency/2018/04/02/0002-concurrency-introduction-to-java-coroutines/</guid>
+                <link>https://romanmarkunas.github.io/concurrency/2018/04/02/0002-concurrency-introduction-to-java-coroutines/</link>
+                <guid isPermaLink="true">https://romanmarkunas.github.io/concurrency/2018/04/02/0002-concurrency-introduction-to-java-coroutines/</guid>
                 
                 <category>concurrency</category>
                 
@@ -224,8 +224,8 @@ Fiber execution took 1661 ms
                 <description>&lt;p&gt;Well, I’ve finally made it! Every big boy must have a blog they say, and now I have one as well. Let’s see how it goes…&lt;/p&gt;
 </description>
                 <pubDate>Sat, 03 Feb 2018 00:00:00 +0000</pubDate>
-                <link>https://justgoodthemes.com/uncategorized/2018/02/03/0001-uncategorized-hello-world/</link>
-                <guid isPermaLink="true">https://justgoodthemes.com/uncategorized/2018/02/03/0001-uncategorized-hello-world/</guid>
+                <link>https://romanmarkunas.github.io/uncategorized/2018/02/03/0001-uncategorized-hello-world/</link>
+                <guid isPermaLink="true">https://romanmarkunas.github.io/uncategorized/2018/02/03/0001-uncategorized-hello-world/</guid>
                 
                 
                 <category>uncategorized</category>
@@ -273,8 +273,8 @@ Fiber execution took 1661 ms
 &lt;p&gt;Human waste is often a major source of environmental impact from hiking, and can contaminate the watershed and make other hikers ill. ‘Catholes’ dug 10 to 25 cm (4 to 10 inches) deep, depending on local soil composition and covered after use, at least 60 m (200 feet) away from water sources and trails, are recommended to reduce the risk of bacterial contamination. [ &lt;a href=&quot;https://en.wikipedia.org/wiki/Hiking&quot;&gt;Source&lt;/a&gt; ]&lt;/p&gt;
 </description>
                 <pubDate>Sat, 19 Mar 2016 00:00:00 +0000</pubDate>
-                <link>https://justgoodthemes.com/2016/03/19/basic-rules-for-walking-in-the-mountains/</link>
-                <guid isPermaLink="true">https://justgoodthemes.com/2016/03/19/basic-rules-for-walking-in-the-mountains/</guid>
+                <link>https://romanmarkunas.github.io/2016/03/19/basic-rules-for-walking-in-the-mountains/</link>
+                <guid isPermaLink="true">https://romanmarkunas.github.io/2016/03/19/basic-rules-for-walking-in-the-mountains/</guid>
                 
                 <category>travel</category>
                 
