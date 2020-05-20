@@ -5,8 +5,8 @@
         <description>Java, performance and design tips by Roman Markunas (Romans Markuns)</description>
         <link>https://romanmarkunas.github.io/</link>
         <atom:link href="https://romanmarkunas.github.io/feed.xml" rel="self" type="application/rss+xml"/>
-        <pubDate>Wed, 20 May 2020 21:38:59 +0100</pubDate>
-        <lastBuildDate>Wed, 20 May 2020 21:38:59 +0100</lastBuildDate>
+        <pubDate>Wed, 20 May 2020 21:45:21 +0100</pubDate>
+        <lastBuildDate>Wed, 20 May 2020 21:45:21 +0100</lastBuildDate>
         <generator>Jekyll v4.0.1</generator>
         
             <item>
@@ -201,8 +201,6 @@ Fiber execution took 1661 ms
                 <pubDate>Mon, 02 Apr 2018 00:00:00 +0100</pubDate>
                 <link>https://romanmarkunas.github.io/concurrency/2018/04/02/0002-concurrency-introduction-to-java-coroutines/</link>
                 <guid isPermaLink="true">https://romanmarkunas.github.io/concurrency/2018/04/02/0002-concurrency-introduction-to-java-coroutines/</guid>
-                
-                <category>concurrency</category>
                 
                 <category>coroutines</category>
                 
