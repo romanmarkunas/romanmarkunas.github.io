@@ -38,3 +38,25 @@ document.getElementById('js-top-link').addEventListener('click', function (e) {
     document.querySelector('.site-nav').scrollIntoView({ behavior: 'smooth' });
     e.preventDefault();
 });
+
+function transformSyntaxHiglightsBecausePygmentsJavaLexerIsRubbish() {
+    var spans = Array.from(document.getElementsByClassName("na"));
+    for(var i = 0; i < spans.length; i++)
+    {
+        var span = spans[i];
+        var nextSpan = span.nextElementSibling;
+        var content = span.innerHTML;
+        if (content == "class") {
+            span.className = "k"; // class is a keyword :@
+        }
+        else if (nextSpan != null
+                && nextSpan.tagName.toLowerCase() == "span"
+                && nextSpan.className == "o"
+                && nextSpan.innerHTML.startsWith("(")) {
+            continue; // class is a method call so leave identifier :@
+        }
+        else {
+           span.className = "vi"; // class is a field :@
+        }
+    }
+};

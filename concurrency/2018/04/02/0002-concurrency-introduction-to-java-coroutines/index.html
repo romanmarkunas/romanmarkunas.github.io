@@ -15,7 +15,7 @@
     <link rel="canonical" href="https://romanmarkunas.github.io/concurrency/2018/04/02/0002-concurrency-introduction-to-java-coroutines/">
     <link rel="alternate" type="application/rss+xml" title="Roman Markunas (Romans Markuns) blog Feed" href="https://romanmarkunas.github.io/feed.xml">
 </head>
-<body>
+<body onload="transformSyntaxHiglightsBecausePygmentsJavaLexerIsRubbish();">
     <div class="site">
         <nav id="top" class="site-nav outer" aria-label="Main Menu">
     <div class="inner">
@@ -144,11 +144,11 @@
 <h2>Test setup for thread and coroutine examples</h2>
 <p>Let’s emulate our calls to our slow service in test suite. Following handy Dropwizard rule will create a fresh embedded server with blocking resource for each test:</p>
 
-<div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    <span class="nd">@Rule</span>
-    <span class="kd">public</span> <span class="nc">DropwizardAppRule</span><span class="o">&lt;</span><span class="nc">Configuration</span><span class="o">&gt;</span> <span class="n">app</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">DropwizardAppRule</span><span class="o">&lt;&gt;(</span>
-            <span class="nc">SlowApplication</span><span class="o">.</span><span class="na">class</span><span class="o">,</span>
-            <span class="nc">ResourceHelpers</span><span class="o">.</span><span class="na">resourceFilePath</span><span class="o">(</span><span class="s">"slow.yml"</span><span class="o">)</span>
-    <span class="o">);</span>
+<div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nd">@Rule</span>
+<span class="kd">public</span> <span class="nc">DropwizardAppRule</span><span class="o">&lt;</span><span class="nc">Configuration</span><span class="o">&gt;</span> <span class="n">app</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">DropwizardAppRule</span><span class="o">&lt;&gt;(</span>
+        <span class="nc">SlowApplication</span><span class="o">.</span><span class="na">class</span><span class="o">,</span>
+        <span class="nc">ResourceHelpers</span><span class="o">.</span><span class="na">resourceFilePath</span><span class="o">(</span><span class="s">"slow.yml"</span><span class="o">)</span>
+<span class="o">);</span>
 </code></pre></div></div>
 
 <p>Now let’s make our call routine which will be shared between thread and coroutine example:</p>
@@ -299,7 +299,6 @@ Fiber execution took 1661 ms
 
 <div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>testCompile 'co.paralleluniverse:comsat-jax-rs-client:0.7.0' 
 </code></pre></div></div>
-
         </div><!-- .post-content -->
         <footer class="post-footer inner-small outer">
             <div class="post-share">
