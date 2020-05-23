@@ -5,8 +5,8 @@
         <description>Java, performance and design tips by Roman Markunas (Romans Markuns)</description>
         <link>https://romanmarkunas.github.io/</link>
         <atom:link href="https://romanmarkunas.github.io/feed.xml" rel="self" type="application/rss+xml"/>
-        <pubDate>Sat, 23 May 2020 11:40:32 +0100</pubDate>
-        <lastBuildDate>Sat, 23 May 2020 11:40:32 +0100</lastBuildDate>
+        <pubDate>Sat, 23 May 2020 20:46:43 +0100</pubDate>
+        <lastBuildDate>Sat, 23 May 2020 20:46:43 +0100</lastBuildDate>
         <generator>Jekyll v4.0.1</generator>
         
             <item>
@@ -206,14 +206,13 @@ Fiber execution took 1661 ms
                 
                 <category>Java</category>
                 
+                <category>concurrency</category>
+                
                 <category>multithreading</category>
                 
                 <category>non-blocking IO</category>
                 
                 <category>Quasar</category>
-                
-                
-                <category>concurrency</category>
                 
             </item>
         
@@ -224,9 +223,6 @@ Fiber execution took 1661 ms
                 <pubDate>Sat, 03 Feb 2018 00:00:00 +0000</pubDate>
                 <link>https://romanmarkunas.github.io/uncategorized/2018/02/03/0001-uncategorized-hello-world/</link>
                 <guid isPermaLink="true">https://romanmarkunas.github.io/uncategorized/2018/02/03/0001-uncategorized-hello-world/</guid>
-                
-                
-                <category>uncategorized</category>
                 
             </item>
         

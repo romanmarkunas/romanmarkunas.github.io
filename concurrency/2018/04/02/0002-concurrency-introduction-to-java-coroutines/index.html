@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <title>Introduction to Java coroutines</title> 
-    <meta name="description" content="Java, performance and design tips by Roman Markunas (Romans Markuns)">
+    <meta name="description" content="Get rid of large thread pools or asynchronous code and improve Java concurrent performance by using Java coroutines library - Quasar">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <link rel="shortcut icon" href="/favicon.ico">
@@ -102,6 +102,8 @@
             <a href="/tags/index.html#coroutines" rel="tag" id="a-post-tag">#coroutines</a>
             
             <a href="/tags/index.html#Java" rel="tag" id="a-post-tag">#Java</a>
+            
+            <a href="/tags/index.html#concurrency" rel="tag" id="a-post-tag">#concurrency</a>
             
             <a href="/tags/index.html#multithreading" rel="tag" id="a-post-tag">#multithreading</a>
             
@@ -315,7 +317,7 @@ Fiber execution took 1661 ms
 <!--            -->
 <!--            <div class="post-tags">-->
 <!--                <span>Tags:</span>-->
-<!--                <a href="/tags/index.html#coroutines" rel="tag">coroutines</a><a href="/tags/index.html#Java" rel="tag">Java</a><a href="/tags/index.html#multithreading" rel="tag">multithreading</a><a href="/tags/index.html#non-blocking+IO" rel="tag">non-blocking IO</a><a href="/tags/index.html#Quasar" rel="tag">Quasar</a>-->
+<!--                <a href="/tags/index.html#coroutines" rel="tag">coroutines</a><a href="/tags/index.html#Java" rel="tag">Java</a><a href="/tags/index.html#concurrency" rel="tag">concurrency</a><a href="/tags/index.html#multithreading" rel="tag">multithreading</a><a href="/tags/index.html#non-blocking+IO" rel="tag">non-blocking IO</a><a href="/tags/index.html#Quasar" rel="tag">Quasar</a>-->
 <!--            </div>-->
 <!--            -->
         </footer><!-- .post-footer -->
@@ -336,25 +338,21 @@ Fiber execution took 1661 ms
         
     </nav><!-- .post-navigation -->
 
-    
     <div class="comments-area">
-    <div class="inner-small outer">
-        <h2 class="comments-title line-accent">Comments</h2>
-        <div id="disqus_thread"></div>
-        <noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus</a>.</noscript>
-    </div><!-- .inner-small -->
-</div><!-- .comments-area -->
+        <div class="inner-small outer">
+<!--            <h2 class="comments-title line-accent">Comments</h2>-->
+            <div id="hyvor-talk-view"></div>
+            <script type="text/javascript">
+                var HYVOR_TALK_WEBSITE = 708; // DO NOT CHANGE THIS
+                var HYVOR_TALK_CONFIG = {
+                    url: 'https://romanmarkunas.github.io/concurrency/2018/04/02/0002-concurrency-introduction-to-java-coroutines/',
+                    id: '/concurrency/2018/04/02/--0002---concurrency---introduction-to-java-coroutines'
+                };
+            </script>
+            <script async type="text/javascript" src="//talk.hyvor.com/web-api/embed"></script>
 
-<script>
-    var disqus_shortname = 'justgoodthemes';
-    var disqus_developer = 0;
-    (function () {
-        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
-        dsq.src = 'https://' + disqus_shortname + '.disqus.com/embed.js';
-        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
-    })();
-</script>
-    
+        </div><!-- .inner-small -->
+    </div><!-- .comments-area -->
 
 </div><!-- .primary -->
 
@@ -390,7 +388,7 @@ Fiber execution took 1661 ms
     <section class="widget widget-tags">
         <h2 class="widget-title line-accent">Tags</h2>
         <div class="tagcloud">
-            <a href="/tags/#Java">Java</a><a href="/tags/#Quasar">Quasar</a><a href="/tags/#coroutines">coroutines</a><a href="/tags/#multithreading">multithreading</a><a href="/tags/#non-blocking+IO">non-blocking IO</a>
+            <a href="/tags/#Java">Java</a><a href="/tags/#Quasar">Quasar</a><a href="/tags/#concurrency">concurrency</a><a href="/tags/#coroutines">coroutines</a><a href="/tags/#multithreading">multithreading</a><a href="/tags/#non-blocking+IO">non-blocking IO</a>
         </div><!-- .tagcloud -->
     </section><!-- .widget -->
 
@@ -410,15 +408,15 @@ Fiber execution took 1661 ms
 
     </div><!-- .site -->
     
-    <script>
-  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
-  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
-  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
-  })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-117056147-2"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
 
-  ga('create', '', 'auto');
-  ga('send', 'pageview');
+  gtag('config', 'UA-117056147-2');
 </script>
+
     
     <script src="/js/scripts.js"></script>
 </body>
