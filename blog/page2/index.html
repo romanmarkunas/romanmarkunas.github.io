@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>Hello World!</title> 
-    <meta name="description" content="Dummy post to start off my blog">
+    <title>Roman Markunas (Romans Markuns) blog</title> 
+    <meta name="description" content="Java, performance and design tips by Roman Markunas (Romans Markuns)">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <link rel="shortcut icon" href="/favicon.ico">
@@ -12,7 +12,7 @@
 
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:400,400i,700,700i&display=swap" />
     <link rel="stylesheet" href="/css/main.css" />
-    <link rel="canonical" href="https://romanmarkunas.github.io/uncategorized/2018/02/03/0001-uncategorized-hello-world/">
+    <link rel="canonical" href="https://romanmarkunas.github.io/blog/page2/">
     <link rel="alternate" type="application/rss+xml" title="Roman Markunas (Romans Markuns) blog Feed" href="https://romanmarkunas.github.io/feed.xml">
 </head>
 <body onload="transformSyntaxHiglightsBecausePygmentsJavaLexerIsRubbish();">
@@ -80,14 +80,99 @@
             <div class="inner">
                 <main class="site-main">
                     <div class="primary">
-    <article class="post post-full">
+    
+    <article class="post">
         <header class="post-header">
             <div class="post-header-wrap">
-                <h1 class="post-title outer">Hello World!</h1>
+                <h2 class="post-title outer"><a href="/messaging/2018/09/22/0003-messaging-messaging-system-latencies-1-kafka/" rel="bookmark">Messaging system latencies, part 1: Apache Kafka</a></h2>
             </div>
         </header><!-- .post-header -->
         <div class="post-content inner-small outer">
-            <time class="published" datetime="">2018-02-03</time><span class="reading-time" title="Estimated read time">
+            <time class="published" datetime="2018-09-22">2018-09-22</time><span class="reading-time" title="Estimated read time">
+  
+  
+    	&mdash; 5 min read
+  
+</span>
+
+
+            <br>
+
+            
+                
+                    <a href="/tags/index.html#kafka" rel="tag" id="a-post-tag">#kafka</a>
+                
+                    <a href="/tags/index.html#messaging" rel="tag" id="a-post-tag">#messaging</a>
+                
+                    <a href="/tags/index.html#low+latency" rel="tag" id="a-post-tag">#low latency</a>
+                
+                <br>
+            
+            <br>
+
+            
+                <p>Most developers I talk to about Kafka agree on a catchphrase “Kafka is designed for throughput”. That’s fair and you can find plenty of benchmarks that show 700k/s throughput for single producer without replication. But does that mean we should discard Kafka when talking about low latency messaging?</p>
+
+<p>After quick googling I found <a href="https://stackoverflow.com/questions/20520492/how-to-minimize-the-latency-involved-in-kafka-messaging-framework">this outdated SO question</a>. That question is very old and includes very old version of Kafka (0.7.2 whereas current version is 2.0.0) and also <a href="https://engineering.linkedin.com/kafka/benchmarking-apache-kafka-2-million-writes-second-three-cheap-machines">this article</a> states that very decent latencies (2-3ms 99 percentile) are achievable. Having such controversial info is not enough to make final decision so I decided to create a little benchmark myself, to finally conclude whether Kafka is good for low-latency applications.</p>
+
+
+                <p class="read-more"><a href="/messaging/2018/09/22/0003-messaging-messaging-system-latencies-1-kafka/" class="button">Read more</a></p>
+            
+        </div><!-- .post-content -->
+    </article><!-- .post -->
+    
+    <article class="post">
+        <header class="post-header">
+            <div class="post-header-wrap">
+                <h2 class="post-title outer"><a href="/concurrency/2018/04/02/0002-concurrency-introduction-to-java-coroutines/" rel="bookmark">Introduction to Java coroutines</a></h2>
+            </div>
+        </header><!-- .post-header -->
+        <div class="post-content inner-small outer">
+            <time class="published" datetime="2018-04-02">2018-04-02</time><span class="reading-time" title="Estimated read time">
+  
+  
+    	&mdash; 10 min read
+  
+</span>
+
+
+            <br>
+
+            
+                
+                    <a href="/tags/index.html#coroutines" rel="tag" id="a-post-tag">#coroutines</a>
+                
+                    <a href="/tags/index.html#java" rel="tag" id="a-post-tag">#java</a>
+                
+                    <a href="/tags/index.html#concurrency" rel="tag" id="a-post-tag">#concurrency</a>
+                
+                    <a href="/tags/index.html#multithreading" rel="tag" id="a-post-tag">#multithreading</a>
+                
+                    <a href="/tags/index.html#non-blocking+IO" rel="tag" id="a-post-tag">#non-blocking IO</a>
+                
+                    <a href="/tags/index.html#quasar" rel="tag" id="a-post-tag">#quasar</a>
+                
+                <br>
+            
+            <br>
+
+            
+                <p>Many times I find an ExecutorService with 400 threads in Java code and I always got that’s-not-ok feeling of that. This is usually introduced as necessary evil to retain application responsiveness while being blocked by downstream. However there is another way of achieving responsiveness, which is couroutines (alternatively known also as green threads and non-blocking threads in another languages). Java doesn’t support coroutines at language level, so for this example we will use almost exclusive Java implementation of coroutines - Quasar.</p>
+
+
+                <p class="read-more"><a href="/concurrency/2018/04/02/0002-concurrency-introduction-to-java-coroutines/" class="button">Read more</a></p>
+            
+        </div><!-- .post-content -->
+    </article><!-- .post -->
+    
+    <article class="post">
+        <header class="post-header">
+            <div class="post-header-wrap">
+                <h2 class="post-title outer"><a href="/uncategorized/2018/02/03/0001-uncategorized-hello-world/" rel="bookmark">Hello World!</a></h2>
+            </div>
+        </header><!-- .post-header -->
+        <div class="post-content inner-small outer">
+            <time class="published" datetime="2018-02-03">2018-02-03</time><span class="reading-time" title="Estimated read time">
   
   
     	&mdash; 1 min read
@@ -100,54 +185,24 @@
             
             <br>
 
-            <p>Well, I’ve finally made it! Every big boy must have a blog they say, and now I have one as well. Let’s see how it goes…</p>
+            
+                <p>Well, I’ve finally made it! Every big boy must have a blog they say, and now I have one as well. Let’s see how it goes…</p>
+
+            
         </div><!-- .post-content -->
-        <footer class="post-footer inner-small outer">
-            <div class="post-share">
-                <span>Share:</span>
-                <a class="button button-icon button-fill-horz"
-                    href="https://twitter.com/intent/tweet?text=Hello%20World!&amp;url=https://romanmarkunas.github.io/uncategorized/2018/02/03/0001-uncategorized-hello-world/"
-                    target="_blank" rel="noopener"><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M23.954 4.569a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.691 8.094 4.066 6.13 1.64 3.161a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.061a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.937 4.937 0 004.604 3.417 9.868 9.868 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.054 0 13.999-7.496 13.999-13.986 0-.209 0-.42-.015-.63a9.936 9.936 0 002.46-2.548l-.047-.02z"/></svg><span
-                        class="screen-reader-text">Share on Twitter</span></a>
-                <a class="button button-icon button-fill-horz"
-                    href="https://www.facebook.com/sharer/sharer.php?u=https://romanmarkunas.github.io/uncategorized/2018/02/03/0001-uncategorized-hello-world/&amp;t=Hello%20World!"
-                    target="_blank" rel="noopener"><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M23.998 12c0-6.628-5.372-12-11.999-12C5.372 0 0 5.372 0 12c0 5.988 4.388 10.952 10.124 11.852v-8.384H7.078v-3.469h3.046V9.356c0-3.008 1.792-4.669 4.532-4.669 1.313 0 2.686.234 2.686.234v2.953H15.83c-1.49 0-1.955.925-1.955 1.874V12h3.328l-.532 3.469h-2.796v8.384c5.736-.9 10.124-5.864 10.124-11.853z"/></svg><span
-                        class="screen-reader-text">Share on Facebook</span></a>
-            </div>
-<!--            -->
-        </footer><!-- .post-footer -->
     </article><!-- .post -->
-    <nav class="post-navigation">
-        <h2 class="screen-reader-text">Read Next</h2>
+    
+    
+    <nav class="pagination">
+        <h2 class="screen-reader-text">Posts navigation</h2>
         
+        <a href="/"
+            class="newer-posts button button-icon button-fill-horz"><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M18.251 3.585l-2.585-2.585-11 11 11 11 2.585-2.585-8.396-8.415z"></path></svg><span class="screen-reader-text">Newer Posts</span></a>
         
-        <div class="nav-next">
-            <div class="nav-inside inner-small outer">
-                
-                <div class="nav-before">Next</div>
-                <h3 class="nav-title"><a href="/concurrency/2018/04/02/0002-concurrency-introduction-to-java-coroutines/">Introduction to Java coroutines</a></h3>
-                <div class="nav-date">April 2, 2018</div>
-            </div><!-- .nav-inside -->
-        </div><!-- .nav-next -->
+        <span class="page-number">Page 2 of 2</span>
         
-    </nav><!-- .post-navigation -->
-
-    <div class="comments-area">
-        <div class="inner-small outer">
-<!--            <h2 class="comments-title line-accent">Comments</h2>-->
-            <div id="hyvor-talk-view"></div>
-            <script type="text/javascript">
-                var HYVOR_TALK_WEBSITE = 708; // DO NOT CHANGE THIS
-                var HYVOR_TALK_CONFIG = {
-                    url: 'https://romanmarkunas.github.io/uncategorized/2018/02/03/0001-uncategorized-hello-world/',
-                    id: '/uncategorized/2018/02/03/--0001---uncategorized---hello-world'
-                };
-            </script>
-            <script async type="text/javascript" src="//talk.hyvor.com/web-api/embed"></script>
-
-        </div><!-- .inner-small -->
-    </div><!-- .comments-area -->
-
+    </nav><!-- .pagination -->
+    
 </div><!-- .primary -->
 
 <aside class="sidebar">

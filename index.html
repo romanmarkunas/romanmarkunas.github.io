@@ -87,14 +87,14 @@
     <article class="post">
         <header class="post-header">
             <div class="post-header-wrap">
-                <h2 class="post-title outer"><a href="/concurrency/2018/04/02/0002-concurrency-introduction-to-java-coroutines/" rel="bookmark">Introduction to Java coroutines</a></h2>
+                <h2 class="post-title outer"><a href="/microservices/2018/11/15/0008-microservices-dropwizard-101/" rel="bookmark">Getting started with Dropwizard</a></h2>
             </div>
         </header><!-- .post-header -->
         <div class="post-content inner-small outer">
-            <time class="published" datetime="2018-04-02">2018-04-02</time><span class="reading-time" title="Estimated read time">
+            <time class="published" datetime="2018-11-15">2018-11-15</time><span class="reading-time" title="Estimated read time">
   
   
-    	&mdash; 10 min read
+    	&mdash; 6 min read
   
 </span>
 
@@ -103,27 +103,25 @@
 
             
                 
-                    <a href="/tags/index.html#coroutines" rel="tag" id="a-post-tag">#coroutines</a>
+                    <a href="/tags/index.html#microservices" rel="tag" id="a-post-tag">#microservices</a>
                 
-                    <a href="/tags/index.html#Java" rel="tag" id="a-post-tag">#Java</a>
+                    <a href="/tags/index.html#java" rel="tag" id="a-post-tag">#java</a>
                 
-                    <a href="/tags/index.html#concurrency" rel="tag" id="a-post-tag">#concurrency</a>
+                    <a href="/tags/index.html#dropwizard" rel="tag" id="a-post-tag">#dropwizard</a>
                 
-                    <a href="/tags/index.html#multithreading" rel="tag" id="a-post-tag">#multithreading</a>
-                
-                    <a href="/tags/index.html#non-blocking+IO" rel="tag" id="a-post-tag">#non-blocking IO</a>
-                
-                    <a href="/tags/index.html#Quasar" rel="tag" id="a-post-tag">#Quasar</a>
+                    <a href="/tags/index.html#gradle" rel="tag" id="a-post-tag">#gradle</a>
                 
                 <br>
             
             <br>
 
             
-                <p>Many times I find an ExecutorService with 400 threads in Java code and I always got that’s-not-ok feeling of that. This is usually introduced as necessary evil to retain application responsiveness while being blocked by downstream. However there is another way of achieving responsiveness, which is couroutines (alternatively known also as green threads and non-blocking threads in another languages). Java doesn’t support coroutines at language level, so for this example we will use almost exclusive Java implementation of coroutines - Quasar.</p>
+                <p>Dropwizard is a framework for rapid application development. Dropwizard pulls and glues together Jetty application server, Jersey REST framework, Jackson for serialization/deserialization and a bunch of other libraries, so you have everything at hand to develop full-featured Java-based RESTful web-applications.</p>
+
+<p>This tutorial will go through core Dropwizard components and how they are assembled together to have working Dropwizard application within munites.</p>
 
 
-                <p class="read-more"><a href="/concurrency/2018/04/02/0002-concurrency-introduction-to-java-coroutines/" class="button">Read more</a></p>
+                <p class="read-more"><a href="/microservices/2018/11/15/0008-microservices-dropwizard-101/" class="button">Read more</a></p>
             
         </div><!-- .post-content -->
     </article><!-- .post -->
@@ -131,11 +129,123 @@
     <article class="post">
         <header class="post-header">
             <div class="post-header-wrap">
-                <h2 class="post-title outer"><a href="/uncategorized/2018/02/03/0001-uncategorized-hello-world/" rel="bookmark">Hello World!</a></h2>
+                <h2 class="post-title outer"><a href="/build/2018/11/13/0007-build-gradle-fat-jars/" rel="bookmark">Creating fat JARs with gradle</a></h2>
             </div>
         </header><!-- .post-header -->
         <div class="post-content inner-small outer">
-            <time class="published" datetime="2018-02-03">2018-02-03</time><span class="reading-time" title="Estimated read time">
+            <time class="published" datetime="2018-11-13">2018-11-13</time><span class="reading-time" title="Estimated read time">
+  
+  
+    	&mdash; 3 min read
+  
+</span>
+
+
+            <br>
+
+            
+                
+                    <a href="/tags/index.html#build" rel="tag" id="a-post-tag">#build</a>
+                
+                    <a href="/tags/index.html#gradle" rel="tag" id="a-post-tag">#gradle</a>
+                
+                    <a href="/tags/index.html#java" rel="tag" id="a-post-tag">#java</a>
+                
+                <br>
+            
+            <br>
+
+            
+                <p>Here’s a quick tutorial on how to package your java application and dependencies into single fat JAR (shadow JAR, capsule, however it’s called) with gradle.</p>
+
+
+                <p class="read-more"><a href="/build/2018/11/13/0007-build-gradle-fat-jars/" class="button">Read more</a></p>
+            
+        </div><!-- .post-content -->
+    </article><!-- .post -->
+    
+    <article class="post">
+        <header class="post-header">
+            <div class="post-header-wrap">
+                <h2 class="post-title outer"><a href="/messaging/2018/10/01/0006-messaging-kafka-in-practice-1-producer/" rel="bookmark">Kafka transactions in practice 1: Producer</a></h2>
+            </div>
+        </header><!-- .post-header -->
+        <div class="post-content inner-small outer">
+            <time class="published" datetime="2018-10-01">2018-10-01</time><span class="reading-time" title="Estimated read time">
+  
+  
+    	&mdash; 7 min read
+  
+</span>
+
+
+            <br>
+
+            
+                
+                    <a href="/tags/index.html#messaging" rel="tag" id="a-post-tag">#messaging</a>
+                
+                    <a href="/tags/index.html#java" rel="tag" id="a-post-tag">#java</a>
+                
+                    <a href="/tags/index.html#kafka" rel="tag" id="a-post-tag">#kafka</a>
+                
+                <br>
+            
+            <br>
+
+            
+                <p>This post will highlight some practical aspects of using kafka transactions. I will not dive deep into theory on how Kafka transactions are implemented. Instead, let’s discuss main “gotchas” someone could encounter when trying to use Kafka transactions in production first time.</p>
+
+
+                <p class="read-more"><a href="/messaging/2018/10/01/0006-messaging-kafka-in-practice-1-producer/" class="button">Read more</a></p>
+            
+        </div><!-- .post-content -->
+    </article><!-- .post -->
+    
+    <article class="post">
+        <header class="post-header">
+            <div class="post-header-wrap">
+                <h2 class="post-title outer"><a href="/core-java/2018/10/01/0005-core-java-random/" rel="bookmark">Notes on Java Random</a></h2>
+            </div>
+        </header><!-- .post-header -->
+        <div class="post-content inner-small outer">
+            <time class="published" datetime="2018-10-01">2018-10-01</time><span class="reading-time" title="Estimated read time">
+  
+  
+    	&mdash; 5 min read
+  
+</span>
+
+
+            <br>
+
+            
+                
+                    <a href="/tags/index.html#core+java" rel="tag" id="a-post-tag">#core java</a>
+                
+                    <a href="/tags/index.html#java" rel="tag" id="a-post-tag">#java</a>
+                
+                <br>
+            
+            <br>
+
+            
+                <p>This article is inspired by Monty-Hall problem/paradox. Now I found this paradox disturbing initially (this is why it’s paradox, wink…), and decided to quickly model it to validate for myself. That brought idea of writing up all I know about Java Random API in this article.</p>
+
+
+                <p class="read-more"><a href="/core-java/2018/10/01/0005-core-java-random/" class="button">Read more</a></p>
+            
+        </div><!-- .post-content -->
+    </article><!-- .post -->
+    
+    <article class="post">
+        <header class="post-header">
+            <div class="post-header-wrap">
+                <h2 class="post-title outer"><a href="/uncategorized/2018/10/01/0004-uncategorized-monty-hall/" rel="bookmark">Monty-Hall problem</a></h2>
+            </div>
+        </header><!-- .post-header -->
+        <div class="post-content inner-small outer">
+            <time class="published" datetime="2018-10-01">2018-10-01</time><span class="reading-time" title="Estimated read time">
   
   
     	&mdash; 1 min read
@@ -149,12 +259,24 @@
             <br>
 
             
-                <p>Well, I’ve finally made it! Every big boy must have a blog they say, and now I have one as well. Let’s see how it goes…</p>
+                <p>This is totally random write-up and it made it here because it inspired post about Java Random number generation. Here is how it goes…</p>
 
+
+                <p class="read-more"><a href="/uncategorized/2018/10/01/0004-uncategorized-monty-hall/" class="button">Read more</a></p>
             
         </div><!-- .post-content -->
     </article><!-- .post -->
     
+    
+    <nav class="pagination">
+        <h2 class="screen-reader-text">Posts navigation</h2>
+        
+        <span class="page-number">Page 1 of 2</span>
+        
+        <a href="/blog/page2/"
+            class="older-posts button button-icon button-fill-horz"><span class="screen-reader-text">Older Posts</span><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M8.333 1l-2.585 2.585 8.396 8.415-8.396 8.415 2.585 2.585 11-11z"></path></svg></a>
+        
+    </nav><!-- .pagination -->
     
 </div><!-- .primary -->
 
@@ -177,9 +299,15 @@
         <h2 class="widget-title line-accent">Latest Posts</h2>
         <ul class="recent-posts">
             
-            <li class="recent-item"><a href="/concurrency/2018/04/02/0002-concurrency-introduction-to-java-coroutines/">Introduction to Java coroutines</a> <span>April 2, 2018</span></li>
+            <li class="recent-item"><a href="/microservices/2018/11/15/0008-microservices-dropwizard-101/">Getting started with Dropwizard</a> <span>November 15, 2018</span></li>
             
-            <li class="recent-item"><a href="/uncategorized/2018/02/03/0001-uncategorized-hello-world/">Hello World!</a> <span>February 3, 2018</span></li>
+            <li class="recent-item"><a href="/build/2018/11/13/0007-build-gradle-fat-jars/">Creating fat JARs with gradle</a> <span>November 13, 2018</span></li>
+            
+            <li class="recent-item"><a href="/messaging/2018/10/01/0006-messaging-kafka-in-practice-1-producer/">Kafka transactions in practice 1: Producer</a> <span>October 1, 2018</span></li>
+            
+            <li class="recent-item"><a href="/core-java/2018/10/01/0005-core-java-random/">Notes on Java Random</a> <span>October 1, 2018</span></li>
+            
+            <li class="recent-item"><a href="/uncategorized/2018/10/01/0004-uncategorized-monty-hall/">Monty-Hall problem</a> <span>October 1, 2018</span></li>
             
         </ul><!-- .recent-posts -->
     </section><!-- .widget-recent-posts -->
@@ -190,7 +318,7 @@
     <section class="widget widget-tags">
         <h2 class="widget-title line-accent">Tags</h2>
         <div class="tagcloud">
-            <a href="/tags/#Java">Java</a><a href="/tags/#Quasar">Quasar</a><a href="/tags/#concurrency">concurrency</a><a href="/tags/#coroutines">coroutines</a><a href="/tags/#multithreading">multithreading</a><a href="/tags/#non-blocking+IO">non-blocking IO</a>
+            <a href="/tags/#build">build</a><a href="/tags/#concurrency">concurrency</a><a href="/tags/#core+java">core java</a><a href="/tags/#coroutines">coroutines</a><a href="/tags/#dropwizard">dropwizard</a><a href="/tags/#gradle">gradle</a><a href="/tags/#java">java</a><a href="/tags/#kafka">kafka</a><a href="/tags/#low+latency">low latency</a><a href="/tags/#messaging">messaging</a><a href="/tags/#microservices">microservices</a><a href="/tags/#multithreading">multithreading</a><a href="/tags/#non-blocking+IO">non-blocking IO</a><a href="/tags/#quasar">quasar</a>
         </div><!-- .tagcloud -->
     </section><!-- .widget -->
 

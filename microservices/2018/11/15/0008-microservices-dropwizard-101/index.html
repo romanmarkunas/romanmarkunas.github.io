@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Getting started with Dropwizard</title> 
+    <meta name="description" content="Dropwizard 101. Understand, write and package simple REST service in minutes">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link rel="shortcut icon" href="/favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:400,400i,700,700i&display=swap" />
+    <link rel="stylesheet" href="/css/main.css" />
+    <link rel="canonical" href="https://romanmarkunas.github.io/microservices/2018/11/15/0008-microservices-dropwizard-101/">
+    <link rel="alternate" type="application/rss+xml" title="Roman Markunas (Romans Markuns) blog Feed" href="https://romanmarkunas.github.io/feed.xml">
+</head>
+<body onload="transformSyntaxHiglightsBecausePygmentsJavaLexerIsRubbish();">
+    <div class="site">
+        <nav id="top" class="site-nav outer" aria-label="Main Menu">
+    <div class="inner">
+        <div class="site-nav-inside">
+
+            <button id="menu-show" class="js-menu-toggle"><span class="icon icon-menu"
+                    aria-hidden="true"></span>Menu</button>
+
+            <div class="menu-panel">
+                <div class="menu-panel-scrollable">
+                    <div class="menu-panel-top">
+                        <button id="menu-hide" class="js-menu-toggle button button-icon button-fill-horz"><span class="icon icon-close" aria-hidden="true"></span><span class="screen-reader-text">Close</span></button>
+                    </div>
+                    <ul class="menu">
+                        
+                        
+                        
+                        <li class="menu-item ">
+                            <a href="/">Home</a>
+                        </li>
+                        
+                        
+                        
+                        <li class="menu-item ">
+                            <a href="/tags/">Archive</a>
+                        </li>
+                        
+                    </ul>
+                </div>
+            </div><!-- .menu-panel -->
+
+            <ul class="actions">
+                <li>
+                    <a class="button button-icon button-fill-horz"
+                       href="https://www.linkedin.com/in/romansmarkuns"><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg><span class="screen-reader-text">LinkedIn</span></a>
+                </li>
+                <li>
+                    <a class="button button-icon button-fill-horz"
+                       href="https://github.com/romanmarkunas"><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg><span class="screen-reader-text">GitHub</span></a>
+                </li>
+                <li>
+                    <a class="button button-icon button-fill-horz"
+                        href="/feed.xml"><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M19.199 24C19.199 13.467 10.533 4.8 0 4.8V0c13.165 0 24 10.835 24 24h-4.801zM3.291 17.415c1.814 0 3.293 1.479 3.293 3.295 0 1.813-1.485 3.29-3.301 3.29C1.47 24 0 22.526 0 20.71s1.475-3.294 3.291-3.295zM15.909 24h-4.665c0-6.169-5.075-11.245-11.244-11.245V8.09c8.727 0 15.909 7.184 15.909 15.91z"/></svg><span class="screen-reader-text">Subscribe</span></a>
+                </li>
+            </ul><!-- .actions -->
+
+        </div><!-- .site-nav-inside -->
+    </div><!-- .inner -->
+</nav><!-- .site-nav -->
+
+        <header class="site-alto-header outer">
+    <div class="inner">
+        <div class="site-header-inside">
+
+<!--            -->
+
+        </div><!-- .site-header-inside -->
+    </div><!-- .inner -->
+</header><!-- .site-header -->
+
+        <div class="site-content outer">
+            <div class="inner">
+                <main class="site-main">
+                    <div class="primary">
+    <article class="post post-full">
+        <header class="post-header">
+            <div class="post-header-wrap">
+                <h1 class="post-title outer">Getting started with Dropwizard</h1>
+            </div>
+        </header><!-- .post-header -->
+        <div class="post-content inner-small outer">
+            <time class="published" datetime="">2018-11-15</time><span class="reading-time" title="Estimated read time">
+  
+  
+    	&mdash; 6 min read
+  
+</span>
+
+
+            <br>
+
+            
+            
+            <a href="/tags/index.html#microservices" rel="tag" id="a-post-tag">#microservices</a>
+            
+            <a href="/tags/index.html#java" rel="tag" id="a-post-tag">#java</a>
+            
+            <a href="/tags/index.html#dropwizard" rel="tag" id="a-post-tag">#dropwizard</a>
+            
+            <a href="/tags/index.html#gradle" rel="tag" id="a-post-tag">#gradle</a>
+            
+            <br>
+            
+            <br>
+
+            <p>Dropwizard is a framework for rapid application development. Dropwizard pulls and glues together Jetty application server, Jersey REST framework, Jackson for serialization/deserialization and a bunch of other libraries, so you have everything at hand to develop full-featured Java-based RESTful web-applications.</p>
+
+<p>This tutorial will go through core Dropwizard components and how they are assembled together to have working Dropwizard application within munites.</p>
+
+<!--more-->
+
+<p>Ready sample application can be found <a href="https://github.com/romanmarkunas/dropwizard-tutorial-1">here</a>.</p>
+
+<h2>Pulling necessary dependencies</h2>
+
+<p>For this section I’ll be using Gradle as dependency manager, since <a href="https://www.dropwizard.io/1.3.5/docs/getting-started.html">Dropwizard website</a> already has examples using Maven.</p>
+
+<p>For simple app we need only one dependency + junit for unit tests:</p>
+
+<div class="language-groovy highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">dependencies</span> <span class="o">{</span>
+    <span class="n">compile</span> <span class="s2">"io.dropwizard:dropwizard-core:$vDropwizard"</span>
+
+    <span class="n">testCompile</span> <span class="s2">"junit:junit:4.12"</span>
+    <span class="n">testCompile</span> <span class="s2">"io.dropwizard:dropwizard-testing:$vDropwizard"</span>
+<span class="o">}</span>
+</code></pre></div></div>
+
+<p>Dropwizard testing package contains junit rules to create endpoints or whole embedded application instance within tests.</p>
+
+<h2>Application entry point</h2>
+
+<p>Since Dropwizard’s artifact is executable JAR, we need to define application entry point as part of our application class:</p>
+
+<div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kd">public</span> <span class="kd">class</span> <span class="nc">HelloApplication</span> <span class="kd">extends</span> <span class="nc">Application</span><span class="o">&lt;</span><span class="nc">Configuration</span><span class="o">&gt;</span> <span class="o">{</span>
+
+    <span class="kd">public</span> <span class="kd">static</span> <span class="kt">void</span> <span class="nf">main</span><span class="o">(</span><span class="nc">String</span><span class="o">[]</span> <span class="n">args</span><span class="o">)</span> <span class="kd">throws</span> <span class="nc">Exception</span> <span class="o">{</span>
+        <span class="k">new</span> <span class="nf">HelloApplication</span><span class="o">().</span><span class="na">run</span><span class="o">(</span><span class="n">args</span><span class="o">);</span>
+    <span class="o">}</span>
+    
+    <span class="nd">@Override</span>
+    <span class="kd">public</span> <span class="kt">void</span> <span class="nf">run</span><span class="o">(</span><span class="nc">Configuration</span> <span class="n">configuration</span><span class="o">,</span> <span class="nc">Environment</span> <span class="n">environment</span><span class="o">)</span> <span class="o">{}</span>
+<span class="o">}</span>
+</code></pre></div></div>
+
+<p>Main method is not necessarily to be located here, but it’s usually done so by convention. Now all we have to do in main method is to call for #run(args) which will startup application container, parse configuration and do all other lovely stuff we’ll discuss further in this article.</p>
+
+<h2>Application container</h2>
+
+<p>Dropwzard applications are served by embedded Jetty container. Most of configuring ang gluing Jetty together with other Dropwizard parts is already done (if you are curious how Jetty is launched within Dropwizard, take a look at io.dropwizard.cli.ServerCommand#run method - this is server entry point after successful input and configuration initialization). What we need to do, is to configure some application-specific server parameters in configuration file:</p>
+
+<div class="language-yaml highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="na">server</span><span class="pi">:</span>
+  <span class="na">type</span><span class="pi">:</span> <span class="s">simple</span>
+  <span class="na">applicationContextPath</span><span class="pi">:</span> <span class="s">/</span>
+</code></pre></div></div>
+
+<p>For this example I used simple Jetty server factory, which creates server with reasonable default settings and public/admin ports being 8080/8081. The only setting specified here is <em>applicationContextPath</em>, because default value is <em>/applciation/</em> and I don’t want all endpoints to be prefixed with that.</p>
+
+<p>At startup Dropwizard will parse this yaml file and deserialize it into Java factories that are used to create objects representing different components.</p>
+
+<p>In case you wonder what <em>type: simple</em> means in this configuration - this is value of @JsonTypeName annotation. That way Jackson will know concrete ServerFactory implementation class that will need to be deserialized from this configuration.</p>
+
+<h2>Running</h2>
+
+<p>So once we have application class and configuration in place we can run our app! Let’s assume for now that we will run it from IDE as we’ll talk a bit more about packaging later.</p>
+
+<p>To run app main method:</p>
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>java ApplicationClass server path/to/config.yaml
+</code></pre></div></div>
+
+<p>If you follow supplied code this will result in:</p>
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>java com.romanmarkunas.dwtutorial1.HelloApplication server config/config.yml
+</code></pre></div></div>
+
+<p>The successful launch will manifest with:</p>
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>org.eclipse.jetty.server.Server: Started @3908ms
+</code></pre></div></div>
+
+<p>However scrolling up we can also see:</p>
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>The following paths were found for the configured resources: NONE
+</code></pre></div></div>
+
+<p>this means we don’t have any endpoints defined yet. So currently we have a full-fledged server running for no reason. Let’s fix that!</p>
+
+<h2>Defining endpoint</h2>
+
+<p>For training purposes we will an endpoint that will return current server time and how many times this endpoint is invoked. Since Java methods can only return 1 value, we will need to create a POJO with these 2:</p>
+
+<div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kd">public</span> <span class="kd">class</span> <span class="nc">TimeAndInvocations</span> <span class="o">{</span>
+
+    <span class="c1">// fields and constructor omitted</span>
+    
+    <span class="nd">@JsonProperty</span>
+    <span class="kd">public</span> <span class="nc">LocalTime</span> <span class="nf">getTime</span><span class="o">()</span> <span class="o">{</span>
+        <span class="k">return</span> <span class="n">time</span><span class="o">;</span>
+    <span class="o">}</span>
+
+    <span class="nd">@JsonProperty</span>
+    <span class="kd">public</span> <span class="kt">int</span> <span class="nf">getCurrentInvocations</span><span class="o">()</span> <span class="o">{</span>
+        <span class="k">return</span> <span class="n">currentInvocations</span><span class="o">;</span>
+    <span class="o">}</span>
+<span class="o">}</span>
+</code></pre></div></div>
+
+<p>Now let’s define endpoint itself:</p>
+
+<div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nd">@Path</span><span class="o">(</span><span class="s">"/time"</span><span class="o">)</span>
+<span class="nd">@Produces</span><span class="o">(</span><span class="nc">MediaType</span><span class="o">.</span><span class="na">APPLICATION_JSON</span><span class="o">)</span>
+<span class="kd">public</span> <span class="kd">class</span> <span class="nc">TimeResource</span> <span class="o">{</span>
+
+    <span class="kd">private</span> <span class="kd">final</span> <span class="nc">AtomicInteger</span> <span class="n">invocations</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">AtomicInteger</span><span class="o">(</span><span class="mi">0</span><span class="o">);</span>
+
+    <span class="nd">@GET</span>
+    <span class="kd">public</span> <span class="nc">TimeAndInvocations</span> <span class="nf">getTimeAndInvocations</span><span class="o">()</span> <span class="o">{</span>
+        <span class="kt">int</span> <span class="n">invocation</span> <span class="o">=</span> <span class="k">this</span><span class="o">.</span><span class="na">invocations</span><span class="o">.</span><span class="na">incrementAndGet</span><span class="o">();</span>
+        <span class="k">return</span> <span class="k">new</span> <span class="nf">TimeAndInvocations</span><span class="o">(</span><span class="nc">LocalTime</span><span class="o">.</span><span class="na">now</span><span class="o">(),</span> <span class="n">invocation</span><span class="o">);</span>
+    <span class="o">}</span>
+<span class="o">}</span>
+</code></pre></div></div>
+
+<p>This defines <em>GET /time</em> endpoint that returns JSON-formatted time and invocation count. All these annotations that allows to represent endpoint as java object come from JAX-RS (JSR 311 &amp; JSR 339) and are implemented by Jersey.</p>
+
+<p>However before we can hit our endpoint, we must let Dropwizard/Jersey know about it in HelloApplication class:</p>
+
+<div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nd">@Override</span>
+<span class="kd">public</span> <span class="kt">void</span> <span class="nf">run</span><span class="o">(</span><span class="nc">Configuration</span> <span class="n">configuration</span><span class="o">,</span> <span class="nc">Environment</span> <span class="n">environment</span><span class="o">)</span> <span class="o">{</span>
+    <span class="n">environment</span><span class="o">.</span><span class="na">jersey</span><span class="o">().</span><span class="na">register</span><span class="o">(</span><span class="k">new</span> <span class="nc">TimeResource</span><span class="o">());</span>
+<span class="o">}</span>
+</code></pre></div></div>
+
+<p>That’s it! Routing of incoming requests into Jersey environment is already done by Dropwizard and launching our app again confirms that:</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>The following paths were found for the configured resources:
+  GET /time (com.romanmarkunas.dwtutorial1.TimeResource)```
+</code></pre></div></div>
+
+<h2>Deserialization configuration</h2>
+
+<p>Let’s look what our endpoint returns:</p>
+
+<div class="language-json highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="p">{</span><span class="w">
+    </span><span class="nl">"time"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w">
+        </span><span class="mi">9</span><span class="p">,</span><span class="w">
+        </span><span class="mi">4</span><span class="p">,</span><span class="w">
+        </span><span class="mi">51</span><span class="p">,</span><span class="w">
+        </span><span class="mi">367000000</span><span class="w">
+    </span><span class="p">],</span><span class="w">
+    </span><span class="nl">"currentInvocations"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="w">
+</span><span class="p">}</span><span class="w">
+</span></code></pre></div></div>
+
+<p>Jackson is the library that converts our TimeAndInvocations objects into JSON string. As you can see by default LocalTime serializer just prints fields.</p>
+
+<p>Let’s fix this:</p>
+
+<div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nd">@JsonProperty</span>
+<span class="nd">@JsonSerialize</span><span class="o">(</span><span class="n">using</span> <span class="o">=</span> <span class="nc">LocalTimeSerializer</span><span class="o">.</span><span class="na">class</span><span class="o">)</span>
+<span class="nd">@JsonFormat</span><span class="o">(</span><span class="n">shape</span> <span class="o">=</span> <span class="nc">JsonFormat</span><span class="o">.</span><span class="na">Shape</span><span class="o">.</span><span class="na">STRING</span><span class="o">,</span> <span class="n">pattern</span> <span class="o">=</span> <span class="s">"hh:mm:ss"</span><span class="o">)</span>
+<span class="kd">public</span> <span class="nc">LocalTime</span> <span class="nf">getTime</span><span class="o">()</span> <span class="o">{</span>
+    <span class="k">return</span> <span class="n">time</span><span class="o">;</span>
+<span class="o">}</span>
+</code></pre></div></div>
+
+<p>which results in output:</p>
+
+<div class="language-json highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="p">{</span><span class="w">
+    </span><span class="nl">"time"</span><span class="p">:</span><span class="w"> </span><span class="s2">"09:45:15"</span><span class="p">,</span><span class="w">
+    </span><span class="nl">"currentInvocations"</span><span class="p">:</span><span class="w"> </span><span class="mi">3</span><span class="w">
+</span><span class="p">}</span><span class="w">
+</span></code></pre></div></div>
+
+<p>Here we added another Jackson annotation which hints serializer how it should form a string representation of that object. Jackson comes with plenty of serializers for Java library classes and other serializers can be registered into Jackson environment, similarly how we didi it with TimeResource. Otherwise, if Jackson doe not find specific serializer for and objects it works with, it will default to aforementioned field-by-field serialization.</p>
+
+<h2>Packaging</h2>
+
+<p>As mentioned before, Dropwizard promotes single JAR packaging. To make a single JAR we need to instruct build tool to put all depended upon classes into JAR file. I have covered this in <a href="https://romanmarkunas.github.iocreating-fat-jars-with-gradle/">separate tutorial before</a>.</p>
+
+<h2>Instead of conclusion</h2>
+
+<p>That’s it for this introductory article. Hopefully after this reader will have vague ide of what Dropwizard is, how it may be used and roughly how it’s components are interacting to bring that.</p>
+        </div><!-- .post-content -->
+        <footer class="post-footer inner-small outer">
+            <div class="post-share">
+                <span>Share:</span>
+                <a class="button button-icon button-fill-horz"
+                    href="https://twitter.com/intent/tweet?text=Getting%20started%20with%20Dropwizard&amp;url=https://romanmarkunas.github.io/microservices/2018/11/15/0008-microservices-dropwizard-101/"
+                    target="_blank" rel="noopener"><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M23.954 4.569a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.691 8.094 4.066 6.13 1.64 3.161a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.061a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.937 4.937 0 004.604 3.417 9.868 9.868 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.054 0 13.999-7.496 13.999-13.986 0-.209 0-.42-.015-.63a9.936 9.936 0 002.46-2.548l-.047-.02z"/></svg><span
+                        class="screen-reader-text">Share on Twitter</span></a>
+                <a class="button button-icon button-fill-horz"
+                    href="https://www.facebook.com/sharer/sharer.php?u=https://romanmarkunas.github.io/microservices/2018/11/15/0008-microservices-dropwizard-101/&amp;t=Getting%20started%20with%20Dropwizard"
+                    target="_blank" rel="noopener"><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M23.998 12c0-6.628-5.372-12-11.999-12C5.372 0 0 5.372 0 12c0 5.988 4.388 10.952 10.124 11.852v-8.384H7.078v-3.469h3.046V9.356c0-3.008 1.792-4.669 4.532-4.669 1.313 0 2.686.234 2.686.234v2.953H15.83c-1.49 0-1.955.925-1.955 1.874V12h3.328l-.532 3.469h-2.796v8.384c5.736-.9 10.124-5.864 10.124-11.853z"/></svg><span
+                        class="screen-reader-text">Share on Facebook</span></a>
+            </div>
+<!--            -->
+<!--            <div class="post-tags">-->
+<!--                <span>Tags:</span>-->
+<!--                <a href="/tags/index.html#microservices" rel="tag">microservices</a><a href="/tags/index.html#java" rel="tag">java</a><a href="/tags/index.html#dropwizard" rel="tag">dropwizard</a><a href="/tags/index.html#gradle" rel="tag">gradle</a>-->
+<!--            </div>-->
+<!--            -->
+        </footer><!-- .post-footer -->
+    </article><!-- .post -->
+    <nav class="post-navigation">
+        <h2 class="screen-reader-text">Read Next</h2>
+        
+        <div class="nav-previous">
+            <div class="nav-inside inner-small outer">
+                
+                <div class="nav-before">Previous</div>
+                <h3 class="nav-title"><a href="/build/2018/11/13/0007-build-gradle-fat-jars/">Creating fat JARs with gradle</a>
+                </h3>
+                <div class="nav-date">November 13, 2018</div>
+            </div><!-- .nav-inside -->
+        </div><!-- .nav-previous -->
+        
+        
+    </nav><!-- .post-navigation -->
+
+    <div class="comments-area">
+        <div class="inner-small outer">
+<!--            <h2 class="comments-title line-accent">Comments</h2>-->
+            <div id="hyvor-talk-view"></div>
+            <script type="text/javascript">
+                var HYVOR_TALK_WEBSITE = 708; // DO NOT CHANGE THIS
+                var HYVOR_TALK_CONFIG = {
+                    url: 'https://romanmarkunas.github.io/microservices/2018/11/15/0008-microservices-dropwizard-101/',
+                    id: '/microservices/2018/11/15/--0008---microservices---dropwizard-101'
+                };
+            </script>
+            <script async type="text/javascript" src="//talk.hyvor.com/web-api/embed"></script>
+
+        </div><!-- .inner-small -->
+    </div><!-- .comments-area -->
+
+</div><!-- .primary -->
+
+<aside class="sidebar">
+
+    <section class="widget widget-text">
+        <h2 class="widget-title line-accent">About</h2>
+        <p style="text-align:justify;">
+            I am Roma, a Java developer focusing on high-throughput
+            systems. This blog is a collection of tech, performance and
+            design tips, broadly covering my experience out in the field.
+        </p>
+    </section><!-- .widget-text -->
+
+    
+
+    
+
+    <section class="widget widget-recent-posts">
+        <h2 class="widget-title line-accent">Latest Posts</h2>
+        <ul class="recent-posts">
+            
+            <li class="recent-item"><a href="/microservices/2018/11/15/0008-microservices-dropwizard-101/">Getting started with Dropwizard</a> <span>November 15, 2018</span></li>
+            
+            <li class="recent-item"><a href="/build/2018/11/13/0007-build-gradle-fat-jars/">Creating fat JARs with gradle</a> <span>November 13, 2018</span></li>
+            
+            <li class="recent-item"><a href="/messaging/2018/10/01/0006-messaging-kafka-in-practice-1-producer/">Kafka transactions in practice 1: Producer</a> <span>October 1, 2018</span></li>
+            
+            <li class="recent-item"><a href="/core-java/2018/10/01/0005-core-java-random/">Notes on Java Random</a> <span>October 1, 2018</span></li>
+            
+            <li class="recent-item"><a href="/uncategorized/2018/10/01/0004-uncategorized-monty-hall/">Monty-Hall problem</a> <span>October 1, 2018</span></li>
+            
+        </ul><!-- .recent-posts -->
+    </section><!-- .widget-recent-posts -->
+
+    <!--Create a sorted array of tags-->
+    
+    
+    <section class="widget widget-tags">
+        <h2 class="widget-title line-accent">Tags</h2>
+        <div class="tagcloud">
+            <a href="/tags/#build">build</a><a href="/tags/#concurrency">concurrency</a><a href="/tags/#core+java">core java</a><a href="/tags/#coroutines">coroutines</a><a href="/tags/#dropwizard">dropwizard</a><a href="/tags/#gradle">gradle</a><a href="/tags/#java">java</a><a href="/tags/#kafka">kafka</a><a href="/tags/#low+latency">low latency</a><a href="/tags/#messaging">messaging</a><a href="/tags/#microservices">microservices</a><a href="/tags/#multithreading">multithreading</a><a href="/tags/#non-blocking+IO">non-blocking IO</a><a href="/tags/#quasar">quasar</a>
+        </div><!-- .tagcloud -->
+    </section><!-- .widget -->
+
+</aside><!-- .sidebar -->
+
+
+                </main><!-- .site-main -->
+            </div><!-- .inner -->
+        </div><!-- .site-content -->
+        <footer class="site-footer outer">
+    <div class="inner">
+        <div class="site-info">
+            <a href="#top" id="js-top-link" class="top-link button button-icon button-fill-horz"><span class="screen-reader-text">Back to the top</span><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M3.44 18.359l8.56-8.541 8.56 8.541 2.63-2.63-11.189-11.189-11.189 11.189z"></path></svg></a>
+        </div><!-- .site-info -->
+    </div><!-- .inner -->
+</footer><!-- .site-footer -->
+
+    </div><!-- .site -->
+    
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-117056147-2"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-117056147-2');
+</script>
+
+    
+    <script src="/js/scripts.js"></script>
+</body>
+</html>

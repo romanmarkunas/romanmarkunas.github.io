@@ -5,9 +5,707 @@
         <description>Java, performance and design tips by Roman Markunas (Romans Markuns)</description>
         <link>https://romanmarkunas.github.io/</link>
         <atom:link href="https://romanmarkunas.github.io/feed.xml" rel="self" type="application/rss+xml"/>
-        <pubDate>Sat, 23 May 2020 20:46:43 +0100</pubDate>
-        <lastBuildDate>Sat, 23 May 2020 20:46:43 +0100</lastBuildDate>
+        <pubDate>Mon, 25 May 2020 19:00:12 +0100</pubDate>
+        <lastBuildDate>Mon, 25 May 2020 19:00:12 +0100</lastBuildDate>
         <generator>Jekyll v4.0.1</generator>
+        
+            <item>
+                <title>Getting started with Dropwizard</title>
+                <description>&lt;p&gt;Dropwizard is a framework for rapid application development. Dropwizard pulls and glues together Jetty application server, Jersey REST framework, Jackson for serialization/deserialization and a bunch of other libraries, so you have everything at hand to develop full-featured Java-based RESTful web-applications.&lt;/p&gt;
+
+&lt;p&gt;This tutorial will go through core Dropwizard components and how they are assembled together to have working Dropwizard application within munites.&lt;/p&gt;
+
+&lt;!--more--&gt;
+
+&lt;p&gt;Ready sample application can be found &lt;a href=&quot;https://github.com/romanmarkunas/dropwizard-tutorial-1&quot;&gt;here&lt;/a&gt;.&lt;/p&gt;
+
+&lt;h2&gt;Pulling necessary dependencies&lt;/h2&gt;
+
+&lt;p&gt;For this section I’ll be using Gradle as dependency manager, since &lt;a href=&quot;https://www.dropwizard.io/1.3.5/docs/getting-started.html&quot;&gt;Dropwizard website&lt;/a&gt; already has examples using Maven.&lt;/p&gt;
+
+&lt;p&gt;For simple app we need only one dependency + junit for unit tests:&lt;/p&gt;
+
+&lt;div class=&quot;language-groovy highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;n&quot;&gt;dependencies&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;compile&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;io.dropwizard:dropwizard-core:$vDropwizard&quot;&lt;/span&gt;
+
+    &lt;span class=&quot;n&quot;&gt;testCompile&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;junit:junit:4.12&quot;&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;testCompile&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;io.dropwizard:dropwizard-testing:$vDropwizard&quot;&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Dropwizard testing package contains junit rules to create endpoints or whole embedded application instance within tests.&lt;/p&gt;
+
+&lt;h2&gt;Application entry point&lt;/h2&gt;
+
+&lt;p&gt;Since Dropwizard’s artifact is executable JAR, we need to define application entry point as part of our application class:&lt;/p&gt;
+
+&lt;div class=&quot;language-java highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;kd&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;class&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;HelloApplication&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;extends&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Application&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;Configuration&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+
+    &lt;span class=&quot;kd&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;static&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;void&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;main&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;String&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;[]&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;args&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;throws&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Exception&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;HelloApplication&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;().&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;run&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;args&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+    &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+    
+    &lt;span class=&quot;nd&quot;&gt;@Override&lt;/span&gt;
+    &lt;span class=&quot;kd&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;void&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;run&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;Configuration&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;configuration&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Environment&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;environment&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{}&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Main method is not necessarily to be located here, but it’s usually done so by convention. Now all we have to do in main method is to call for #run(args) which will startup application container, parse configuration and do all other lovely stuff we’ll discuss further in this article.&lt;/p&gt;
+
+&lt;h2&gt;Application container&lt;/h2&gt;
+
+&lt;p&gt;Dropwzard applications are served by embedded Jetty container. Most of configuring ang gluing Jetty together with other Dropwizard parts is already done (if you are curious how Jetty is launched within Dropwizard, take a look at io.dropwizard.cli.ServerCommand#run method - this is server entry point after successful input and configuration initialization). What we need to do, is to configure some application-specific server parameters in configuration file:&lt;/p&gt;
+
+&lt;div class=&quot;language-yaml highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;na&quot;&gt;server&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
+  &lt;span class=&quot;na&quot;&gt;type&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;simple&lt;/span&gt;
+  &lt;span class=&quot;na&quot;&gt;applicationContextPath&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;/&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;For this example I used simple Jetty server factory, which creates server with reasonable default settings and public/admin ports being 8080/8081. The only setting specified here is &lt;em&gt;applicationContextPath&lt;/em&gt;, because default value is &lt;em&gt;/applciation/&lt;/em&gt; and I don’t want all endpoints to be prefixed with that.&lt;/p&gt;
+
+&lt;p&gt;At startup Dropwizard will parse this yaml file and deserialize it into Java factories that are used to create objects representing different components.&lt;/p&gt;
+
+&lt;p&gt;In case you wonder what &lt;em&gt;type: simple&lt;/em&gt; means in this configuration - this is value of @JsonTypeName annotation. That way Jackson will know concrete ServerFactory implementation class that will need to be deserialized from this configuration.&lt;/p&gt;
+
+&lt;h2&gt;Running&lt;/h2&gt;
+
+&lt;p&gt;So once we have application class and configuration in place we can run our app! Let’s assume for now that we will run it from IDE as we’ll talk a bit more about packaging later.&lt;/p&gt;
+
+&lt;p&gt;To run app main method:&lt;/p&gt;
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;java ApplicationClass server path/to/config.yaml
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;If you follow supplied code this will result in:&lt;/p&gt;
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;java com.romanmarkunas.dwtutorial1.HelloApplication server config/config.yml
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;The successful launch will manifest with:&lt;/p&gt;
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;org.eclipse.jetty.server.Server: Started @3908ms
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;However scrolling up we can also see:&lt;/p&gt;
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;The following paths were found for the configured resources: NONE
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;this means we don’t have any endpoints defined yet. So currently we have a full-fledged server running for no reason. Let’s fix that!&lt;/p&gt;
+
+&lt;h2&gt;Defining endpoint&lt;/h2&gt;
+
+&lt;p&gt;For training purposes we will an endpoint that will return current server time and how many times this endpoint is invoked. Since Java methods can only return 1 value, we will need to create a POJO with these 2:&lt;/p&gt;
+
+&lt;div class=&quot;language-java highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;kd&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;class&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;TimeAndInvocations&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+
+    &lt;span class=&quot;c1&quot;&gt;// fields and constructor omitted&lt;/span&gt;
+    
+    &lt;span class=&quot;nd&quot;&gt;@JsonProperty&lt;/span&gt;
+    &lt;span class=&quot;kd&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;LocalTime&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;getTime&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;time&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+
+    &lt;span class=&quot;nd&quot;&gt;@JsonProperty&lt;/span&gt;
+    &lt;span class=&quot;kd&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;getCurrentInvocations&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;currentInvocations&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Now let’s define endpoint itself:&lt;/p&gt;
+
+&lt;div class=&quot;language-java highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nd&quot;&gt;@Path&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;/time&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;nd&quot;&gt;@Produces&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;MediaType&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;APPLICATION_JSON&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;kd&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;class&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;TimeResource&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+
+    &lt;span class=&quot;kd&quot;&gt;private&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;final&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;AtomicInteger&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;invocations&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;AtomicInteger&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+
+    &lt;span class=&quot;nd&quot;&gt;@GET&lt;/span&gt;
+    &lt;span class=&quot;kd&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;TimeAndInvocations&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;getTimeAndInvocations&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;invocation&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;this&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;invocations&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;incrementAndGet&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;();&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;TimeAndInvocations&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;LocalTime&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;now&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(),&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;invocation&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+    &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;This defines &lt;em&gt;GET /time&lt;/em&gt; endpoint that returns JSON-formatted time and invocation count. All these annotations that allows to represent endpoint as java object come from JAX-RS (JSR 311 &amp;amp; JSR 339) and are implemented by Jersey.&lt;/p&gt;
+
+&lt;p&gt;However before we can hit our endpoint, we must let Dropwizard/Jersey know about it in HelloApplication class:&lt;/p&gt;
+
+&lt;div class=&quot;language-java highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nd&quot;&gt;@Override&lt;/span&gt;
+&lt;span class=&quot;kd&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;void&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;run&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;Configuration&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;configuration&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Environment&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;environment&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;environment&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;jersey&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;().&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;register&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;TimeResource&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;());&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;That’s it! Routing of incoming requests into Jersey environment is already done by Dropwizard and launching our app again confirms that:&lt;/p&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;The following paths were found for the configured resources:
+  GET /time (com.romanmarkunas.dwtutorial1.TimeResource)```
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;h2&gt;Deserialization configuration&lt;/h2&gt;
+
+&lt;p&gt;Let’s look what our endpoint returns:&lt;/p&gt;
+
+&lt;div class=&quot;language-json highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+    &lt;/span&gt;&lt;span class=&quot;nl&quot;&gt;&quot;time&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+        &lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;9&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+        &lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;4&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+        &lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;51&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+        &lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;367000000&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+    &lt;/span&gt;&lt;span class=&quot;p&quot;&gt;],&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+    &lt;/span&gt;&lt;span class=&quot;nl&quot;&gt;&quot;currentInvocations&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Jackson is the library that converts our TimeAndInvocations objects into JSON string. As you can see by default LocalTime serializer just prints fields.&lt;/p&gt;
+
+&lt;p&gt;Let’s fix this:&lt;/p&gt;
+
+&lt;div class=&quot;language-java highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nd&quot;&gt;@JsonProperty&lt;/span&gt;
+&lt;span class=&quot;nd&quot;&gt;@JsonSerialize&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;using&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;LocalTimeSerializer&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;class&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;nd&quot;&gt;@JsonFormat&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;shape&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;JsonFormat&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;Shape&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;STRING&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;pattern&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&quot;hh:mm:ss&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;kd&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;LocalTime&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;getTime&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;time&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;which results in output:&lt;/p&gt;
+
+&lt;div class=&quot;language-json highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+    &lt;/span&gt;&lt;span class=&quot;nl&quot;&gt;&quot;time&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;09:45:15&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+    &lt;/span&gt;&lt;span class=&quot;nl&quot;&gt;&quot;currentInvocations&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;3&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Here we added another Jackson annotation which hints serializer how it should form a string representation of that object. Jackson comes with plenty of serializers for Java library classes and other serializers can be registered into Jackson environment, similarly how we didi it with TimeResource. Otherwise, if Jackson doe not find specific serializer for and objects it works with, it will default to aforementioned field-by-field serialization.&lt;/p&gt;
+
+&lt;h2&gt;Packaging&lt;/h2&gt;
+
+&lt;p&gt;As mentioned before, Dropwizard promotes single JAR packaging. To make a single JAR we need to instruct build tool to put all depended upon classes into JAR file. I have covered this in &lt;a href=&quot;https://romanmarkunas.github.iocreating-fat-jars-with-gradle/&quot;&gt;separate tutorial before&lt;/a&gt;.&lt;/p&gt;
+
+&lt;h2&gt;Instead of conclusion&lt;/h2&gt;
+
+&lt;p&gt;That’s it for this introductory article. Hopefully after this reader will have vague ide of what Dropwizard is, how it may be used and roughly how it’s components are interacting to bring that.&lt;/p&gt;
+</description>
+                <pubDate>Thu, 15 Nov 2018 00:00:00 +0000</pubDate>
+                <link>https://romanmarkunas.github.io/microservices/2018/11/15/0008-microservices-dropwizard-101/</link>
+                <guid isPermaLink="true">https://romanmarkunas.github.io/microservices/2018/11/15/0008-microservices-dropwizard-101/</guid>
+                
+                <category>microservices</category>
+                
+                <category>java</category>
+                
+                <category>dropwizard</category>
+                
+                <category>gradle</category>
+                
+            </item>
+        
+            <item>
+                <title>Creating fat JARs with gradle</title>
+                <description>&lt;p&gt;Here’s a quick tutorial on how to package your java application and dependencies into single fat JAR (shadow JAR, capsule, however it’s called) with gradle.&lt;/p&gt;
+
+&lt;!--more--&gt;
+
+&lt;h2&gt;Easy solution using built-in JAR gradle plugin&lt;/h2&gt;
+
+&lt;div class=&quot;language-groovy highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;n&quot;&gt;jar&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+   &lt;span class=&quot;n&quot;&gt;from&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;configurations&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;compile&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;collect&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;it&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;isDirectory&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;?&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;it&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;zipTree&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;it&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;What it means:&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;&lt;em&gt;jar&lt;/em&gt; - packaging task available in gradle as part of &lt;em&gt;java&lt;/em&gt; plugin&lt;/li&gt;
+  &lt;li&gt;&lt;em&gt;from&lt;/em&gt; - copies passed FileTree into JAR&lt;/li&gt;
+  &lt;li&gt;&lt;em&gt;configurations&lt;/em&gt; - holds all configurations (set of dependencies)&lt;/li&gt;
+  &lt;li&gt;&lt;em&gt;compile&lt;/em&gt; - I used compile configuration for this particular example, but this could be any other or even a separate configuration just for fat JAR&lt;/li&gt;
+  &lt;li&gt;&lt;em&gt;zipTree&lt;/em&gt; - this returns zipped file tree object, because JAR files essentially are ZIP files with specific file arrangement and content&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;While this is nice one-liner that uses only built-in gradle stuff, it will work only in cases when there are no name clashes in all dependencies. For example, if more than one dependency implements Java SPI service interface you will have multiple resources with the same name and only last one will make it into fat JAR.&lt;/p&gt;
+
+&lt;h2&gt;Using Shadow JAR plugin&lt;/h2&gt;
+
+&lt;div class=&quot;language-groovy highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;n&quot;&gt;buildscript&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;dependencies&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;n&quot;&gt;classpath&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;'com.github.jengelman.gradle.plugins:shadow:4.0.1'&lt;/span&gt;
+    &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+
+&lt;span class=&quot;n&quot;&gt;apply&lt;/span&gt; &lt;span class=&quot;nl&quot;&gt;plugin:&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;'com.github.johnrengelman.shadow'&lt;/span&gt;
+
+&lt;span class=&quot;n&quot;&gt;shadowJar&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;mergeServiceFiles&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;()&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Internally this plugin does the same thing as previous one-liner, plus:&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;It collates SPI service files&lt;/li&gt;
+  &lt;li&gt;inherits configuration from &lt;em&gt;jar&lt;/em&gt; task so that you may define manifest in standard familiar way:&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;div class=&quot;language-groovy highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;n&quot;&gt;jar&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;manifest&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;n&quot;&gt;attributes&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;
+            &lt;span class=&quot;s1&quot;&gt;'Main-Class'&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;com.example.CraneBookingApplication&quot;&lt;/span&gt;
+        &lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+    &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;h2&gt;Using Shadow JAR plugin with Windows&lt;/h2&gt;
+
+&lt;p&gt;There is important caveat for Windows users however with previous method. Shadow JAR uses &lt;em&gt;\n&lt;/em&gt; as line separator when merging SPI files. Consequently, when JAR is run on Windows JVM will not be able to correctly read file line-by-line. To avoid this, we define custom service file transformer in &lt;em&gt;build.gradle&lt;/em&gt; that will use &lt;em&gt;\r\n&lt;/em&gt; as line separator:&lt;/p&gt;
+
+&lt;div class=&quot;language-groovy highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;kn&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;nn&quot;&gt;com.github.jengelman.gradle.plugins.shadow.relocation.Relocator&lt;/span&gt;
+&lt;span class=&quot;kn&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;nn&quot;&gt;com.github.jengelman.gradle.plugins.shadow.transformers.ServiceFileTransformer&lt;/span&gt;
+
+&lt;span class=&quot;kd&quot;&gt;class&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;WindowsTransformer&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;extends&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ServiceFileTransformer&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+
+    &lt;span class=&quot;nd&quot;&gt;@Override&lt;/span&gt;
+    &lt;span class=&quot;kt&quot;&gt;void&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;transform&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;String&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;path&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;InputStream&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;is&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;List&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Relocator&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;relocators&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;kt&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;lines&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;is&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;readLines&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;()&lt;/span&gt;
+        
+        &lt;span class=&quot;n&quot;&gt;relocators&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;each&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;rel&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt;
+            &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;rel&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;canRelocateClass&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;File&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;path&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;).&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;))&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+                &lt;span class=&quot;n&quot;&gt;path&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;rel&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;relocateClass&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;path&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+            &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+            &lt;span class=&quot;n&quot;&gt;lines&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;eachWithIndex&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;String&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;line&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;i&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt;
+                &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;rel&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;canRelocateClass&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;line&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;))&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+                    &lt;span class=&quot;n&quot;&gt;lines&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;i&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;rel&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;relocateClass&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;line&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+                &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+            &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+        &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+        
+        &lt;span class=&quot;n&quot;&gt;lines&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;each&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;line&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;serviceEntries&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;path&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;]&lt;/span&gt;
+                &lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;append&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ByteArrayInputStream&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;((&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;line&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;\r\n&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;).&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;getBytes&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;()))&lt;/span&gt;
+        &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+    &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+
+&lt;span class=&quot;n&quot;&gt;shadowJar&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+&lt;span class=&quot;c1&quot;&gt;//    mergeServiceFiles() - should not be used, as it uses default transformer&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;transform&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;WindowsTransformer&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;class&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+</description>
+                <pubDate>Tue, 13 Nov 2018 00:00:00 +0000</pubDate>
+                <link>https://romanmarkunas.github.io/build/2018/11/13/0007-build-gradle-fat-jars/</link>
+                <guid isPermaLink="true">https://romanmarkunas.github.io/build/2018/11/13/0007-build-gradle-fat-jars/</guid>
+                
+                <category>build</category>
+                
+                <category>gradle</category>
+                
+                <category>java</category>
+                
+            </item>
+        
+            <item>
+                <title>Kafka transactions in practice 1: Producer</title>
+                <description>&lt;p&gt;This post will highlight some practical aspects of using kafka transactions. I will not dive deep into theory on how Kafka transactions are implemented. Instead, let’s discuss main “gotchas” someone could encounter when trying to use Kafka transactions in production first time.&lt;/p&gt;
+
+&lt;!--more--&gt;
+
+&lt;p&gt;For detailed theoretical reference please refer to &lt;a href=&quot;https://www.confluent.io/blog/transactions-apache-kafka/&quot;&gt;this great article&lt;/a&gt;. Full code mentioned in article can be found &lt;a href=&quot;https://github.com/romanmarkunas/blog-kafka-transactions&quot;&gt;here&lt;/a&gt;.&lt;/p&gt;
+
+&lt;h2&gt;Transactional applications with Kafka&lt;/h2&gt;
+
+&lt;p&gt;Transactions in Kafka can be divided into 3 big groups: transactions when producing messages, transactions when consuming and exactly once processing, when both consuming and producing are done within one single transaction.&lt;/p&gt;
+
+&lt;p&gt;In this post we will discuss only transactional producing.&lt;/p&gt;
+
+&lt;p&gt;Just one more note before we start. In this article we will discuss only transaction semantics, but not delivery semantics. These may differ, especially when transaction also involves systems external to Kafka.&lt;/p&gt;
+
+&lt;h2&gt;Usage example&lt;/h2&gt;
+
+&lt;p&gt;Let’s say we have an application that allows users to trade chairs between each other. Users submit buy/sell orders and our app finds matching orders so that trades can occur. We also want to aggregate order data to figure out daily volumes, most traded instruments and other fancy business intelligence data. However we do not want to submit customer specific data to business intelligence pipeline because it is personal information and should not be read by unauthorized  personnel. One way to tackle that is to have a microservice that forwards orders to matcher queue and submits orders stripped of sensitive data into aggregator queue.&lt;/p&gt;
+
+&lt;h2&gt;Successful scenario&lt;/h2&gt;
+
+&lt;p&gt;To submit messages into different queues we use following code:&lt;/p&gt;
+
+&lt;div class=&quot;language-java highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;kd&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;void&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;sendTransactionally&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;List&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;TopicAndMessage&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;messages&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;producer&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;beginTransaction&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;();&lt;/span&gt;
+    
+    &lt;span class=&quot;k&quot;&gt;for&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;TopicAndMessage&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;topicAndMessage&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;messages&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;n&quot;&gt;producer&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;send&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;ProducerRecord&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&amp;gt;(&lt;/span&gt;
+                &lt;span class=&quot;n&quot;&gt;topicAndMessage&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;getTopic&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(),&lt;/span&gt;
+                &lt;span class=&quot;n&quot;&gt;getTransactionNr&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(),&lt;/span&gt;
+                &lt;span class=&quot;n&quot;&gt;topicAndMessage&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;getMessage&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;()));&lt;/span&gt;
+    &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+
+    &lt;span class=&quot;n&quot;&gt;producer&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;commitTransaction&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;();&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Now lets simulate successful write in our test scenario:&lt;/p&gt;
+
+&lt;div class=&quot;language-java highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;kd&quot;&gt;private&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;static&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;final&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;List&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;TopicAndMessage&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;MESSAGES&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;asList&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;
+            &lt;span class=&quot;k&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;TopicAndMessage&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;TRADE_MATCHER_TOPIC&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&quot;id: 123, buy 42 chairs&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;),&lt;/span&gt;
+            &lt;span class=&quot;k&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;TopicAndMessage&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;AGGREGATOR_TOPIC&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&quot;buy 42 chairs&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;));&lt;/span&gt;
+
+&lt;span class=&quot;kd&quot;&gt;private&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;KafkaConsumer&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;Integer&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;String&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;consumer&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;...&lt;/span&gt; &lt;span class=&quot;c1&quot;&gt;// create or get read_uncommitted consumer here&lt;/span&gt;
+&lt;span class=&quot;kd&quot;&gt;private&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;KafkaProducer&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;Integer&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;String&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;producer&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;...&lt;/span&gt; &lt;span class=&quot;c1&quot;&gt;// create or get transactional producer here&lt;/span&gt;
+
+&lt;span class=&quot;nd&quot;&gt;@Test&lt;/span&gt;
+&lt;span class=&quot;kd&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;void&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;noFailuresOccurred_readAllConsumer&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;nc&quot;&gt;CrashableTransactionalKafkaProducer&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;crashableProducer&lt;/span&gt;
+            &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;CrashableTransactionalKafkaProducer&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;producer&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;crashableProducer&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;sendTransactionally&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;MESSAGES&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;crashableProducer&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;sendTransactionally&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;MESSAGES&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+
+    &lt;span class=&quot;nc&quot;&gt;ConsumerRecords&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;Integer&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;String&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;records&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;poll&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;();&lt;/span&gt;
+
+    &lt;span class=&quot;n&quot;&gt;assertEquals&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;4&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;records&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;count&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;());&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;print&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;records&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Output:&lt;/p&gt;
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;Topic: orders, offset: 0, transaction: 1, message:  id: 123, buy 42 chairs
+Topic: anonymous-orders, offset: 0, transaction: 1, message:  buy 42 chairs
+Topic: orders, offset: 2, transaction: 2, message:  id: 123, buy 42 chairs
+Topic: anonymous-orders, offset: 2, transaction: 2, message:  buy 42 chairs
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Looks good! Very attentive reader will notice that 2nd transaction offsets start from 2 even though we submitted only 1 message before that. Also what does &lt;em&gt;read_uncommitted&lt;/em&gt; mean in comment above? Let’s discuss this in a moment after checking out failure scenario.&lt;/p&gt;
+
+&lt;h2&gt;Transactional KafkaProducer initialisation is stuck&lt;/h2&gt;
+
+&lt;p&gt;If something is set incorrectly, most of the time Kafka will throw descriptive exception, for example:&lt;/p&gt;
+
+&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;java.lang.IllegalStateException: Cannot use transactional methods without 
+enabling transactions by setting the transactional.id configuration property&lt;/code&gt;&lt;/p&gt;
+
+&lt;p&gt;However one setting may cause indefinite blocking and “hanging”. This is broker setting &lt;em&gt;transaction.state.log.min.isr&lt;/em&gt; (see also &lt;em&gt;transaction.state.log.replication.factor&lt;/em&gt; when changing this). To keep track of which transactions were committed Kafka keeps internal topic called &lt;em&gt;__transaction_state&lt;/em&gt;. This topic should be replicated for fault-tolerance as any other with Kafka. Now when you call &lt;em&gt;initTransactions()&lt;/em&gt; on producer, this call will block until topic has all in-sync replicas acknowledgement.&lt;/p&gt;
+
+&lt;p&gt;For example, if broker has only 2 machines online and &lt;em&gt;transaction.state.log.min.isr = 3&lt;/em&gt;, &lt;em&gt;initTransactions()&lt;/em&gt; will block until one more broker node gets online. If that 3rd node will go offline after producer has been initialized successfully, everything will keep working. However for startup it is necessary to have minimum broker node count online.&lt;/p&gt;
+
+&lt;h2&gt;Failure scenario&lt;/h2&gt;
+
+&lt;p&gt;Now following scenario:&lt;/p&gt;
+
+&lt;div class=&quot;language-java highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nd&quot;&gt;@Test&lt;/span&gt;
+&lt;span class=&quot;kd&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;void&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;crashOnSecondTransaction_readAllConsumer&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;crashableProducer&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;sendTransactionally&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;MESSAGES&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;crashableProducer&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;setShouldCrash&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kc&quot;&gt;true&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;try&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;n&quot;&gt;crashableProducer&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;sendTransactionally&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;MESSAGES&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+    &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;catch&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;ForceCrashException&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;e&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;nc&quot;&gt;System&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;out&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;println&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;Producer crashed!&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+    &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+
+    &lt;span class=&quot;nc&quot;&gt;List&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;ConsumerRecord&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;Integer&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;String&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;records&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;poll&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;();&lt;/span&gt;
+
+    &lt;span class=&quot;n&quot;&gt;assertEquals&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;3&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;records&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;size&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;());&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;print&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;records&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;gives us:&lt;/p&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;Producer crashed!
+Topic: orders, offset: 0, transaction: 1, message:  id: 123, buy 42 chairs
+Topic: anonymous-orders, offset: 0, transaction: 1, message:  buy 42 chairs
+Topic: orders, offset: 2, transaction: 2, message:  id: 123, buy 42 chairs
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Oops! Looks like transactions didn’t work. But they actually do. The problem here is that consumer was created with &lt;em&gt;isolation.level = read_uncommitted&lt;/em&gt; setting, which is it’s default value. Every time producer commits a transaction it submits a commit marker to the log. If consumer’s &lt;em&gt;isolation.level&lt;/em&gt; is set to &lt;em&gt;read_uncommitted&lt;/em&gt; it just reads all messages it can. In case setting is &lt;em&gt;read_committed&lt;/em&gt; consumer will wait until commit marker is submitted to decide what to do with preceding messages.&lt;/p&gt;
+
+&lt;p&gt;This commit marker contains all necessary data for consumer to read from &lt;em&gt;__transactions_state&lt;/em&gt; topic and decide, if message must be returned. In case when producer abort transaction commit marker will represents abort and will be ignore by consumer. In case producer dies, broker will ultimately expire transaction and abort marker itself. This is why if you submit &lt;em&gt;n&lt;/em&gt; messages to topic the next batch will always start at &lt;em&gt;n+1&lt;/em&gt; offset.&lt;/p&gt;
+
+&lt;p&gt;Now if we set consumer’s &lt;em&gt;isolation.level = read_committed&lt;/em&gt;, we will get:&lt;/p&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;Producer crashed!
+Topic: orders, offset: 4, transaction: 1, message:  id: 123, buy 42 chairs
+Topic: anonymous-orders, offset: 2, transaction: 1, message:  buy 42 chairs
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;So important note here is that transactional producing is dependent on the readers. Therefore when building pipelines with Kafka, every node in chain settings must be carefully considered, because one error may cause change in all pipeline delivery semantics!&lt;/p&gt;
+
+&lt;h2&gt;Producer fencing and expiration&lt;/h2&gt;
+
+&lt;p&gt;To protect cluster from intermittent connection errors Kafka uses epochs tied to producer’s transaction ID. Every time producer calls &lt;em&gt;initTransactions()&lt;/em&gt;, cluster will assign it an &lt;em&gt;epoch = previous_epoch + 1&lt;/em&gt;. This means that if you start producer with transaction id and cluster has active producer with same id, the latter one will be disconnected (fenced in Kafka terms) and throw an exception next time it tries to send message:&lt;/p&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;org.apache.kafka.common.errors.ProducerFencedException: Producer attempted an 
+operation with an old epoch. Either there is a newer producer with the same 
+transactionalId, or the producer's transaction has been expired by the broker.
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Sometimes producer throws another exception, with ProducerFencedException as cause.&lt;/p&gt;
+
+&lt;p&gt;But this exception may occur even without connectivity errors. Internally broker keeps a map of producer IDs to transaction IDs to maintain aforementioned fencing functionality. However broker will expire these entries based on &lt;em&gt;transactional.id.expiration.ms&lt;/em&gt; setting which is by default 604800000 ms or 1 week.&lt;/p&gt;
+
+&lt;p&gt;This means that if your producer sends messages slower than once a week it will be fenced (crash) every time it tries to send after that prolonged period. One could put that value to Integer.MAX, but that still will be around 24 days. In case of very rare events, this should be solved differently, e.g. by having separate producer ping topic, that producer will periodically send messages to.&lt;/p&gt;
+
+&lt;h2&gt;Instead of conclusion&lt;/h2&gt;
+
+&lt;p&gt;That’s it for Kafka producers! Hopefully this will help you to understand, setup Kafka transactions and successfully keep them producing. For more implementation details how Kafka transactions work, I recommend blog mentioned in this post’s intro and this &lt;a href=&quot;https://cwiki.apache.org/confluence/display/KAFKA/KIP-98+-+Exactly+Once+Delivery+and+Transactional+Messaging#KIP-98-ExactlyOnceDeliveryandTransactionalMessaging-2.GettingaproducerId--theInitPidRequest&quot;&gt;Kafka KIP&lt;/a&gt;.&lt;/p&gt;
+
+&lt;p&gt;Stay tuned for article on transactional consuming!&lt;/p&gt;
+</description>
+                <pubDate>Mon, 01 Oct 2018 00:00:00 +0100</pubDate>
+                <link>https://romanmarkunas.github.io/messaging/2018/10/01/0006-messaging-kafka-in-practice-1-producer/</link>
+                <guid isPermaLink="true">https://romanmarkunas.github.io/messaging/2018/10/01/0006-messaging-kafka-in-practice-1-producer/</guid>
+                
+                <category>messaging</category>
+                
+                <category>java</category>
+                
+                <category>kafka</category>
+                
+            </item>
+        
+            <item>
+                <title>Notes on Java Random</title>
+                <description>&lt;p&gt;This article is inspired by Monty-Hall problem/paradox. Now I found this paradox disturbing initially (this is why it’s paradox, wink…), and decided to quickly model it to validate for myself. That brought idea of writing up all I know about Java Random API in this article.&lt;/p&gt;
+
+&lt;!--more--&gt;
+
+&lt;p&gt;If you want to read about paradox itself click &lt;a href=&quot;https://romanmarkunas.github.io/monty-hall-problem/&quot;&gt;here&lt;/a&gt;&lt;/p&gt;
+
+&lt;h2&gt;java.util.Random&lt;/h2&gt;
+
+&lt;h4&gt;Instantiation&lt;/h4&gt;
+
+&lt;p&gt;Random generator is a bit group sequence generator. Random constructor accepts “seed” parameter which is just a starting value for the sequence generator. This is why if you seed 2 Random instances with same number and call same next() methods in exact sequence, generated number will be exactly the same.&lt;/p&gt;
+
+&lt;p&gt;To protect default Random constructor from such behavior, Java uses current system time to seed generator. However it is possible that 2 threads will instantiate Random objects at exactly same nano second, therefore current time is XOR’ed with “seed uniquifier” value which is guaranteed to be unique for each thread via AtomicLong#compareAndSet().&lt;/p&gt;
+
+&lt;p&gt;Please note, that if you need multiple threads served by random generator it might be beneficial to use ThreadLocalRandom, that reduces thread contention.&lt;/p&gt;
+
+&lt;h4&gt;Number generation&lt;/h4&gt;
+
+&lt;p&gt;Actual “random” number generation is done by next() method as all other methods are just wrappers around that to create correct variable, using some bit arithmetic.&lt;/p&gt;
+
+&lt;p&gt;The next() method itself is multiplication, addition and masking with carefully selected values that ensure good uniformity. This means that once you have same bits generated by 2 random generators (which could be achieved via setSeed() method), next generated sequences will be exactly the same, similar to what is achieved by having same seed from the start.&lt;/p&gt;
+
+&lt;h4&gt;Number predictability&lt;/h4&gt;
+
+&lt;p&gt;At this point you may feel that aforementioned predictability may break security of system, if Random is used to generate tokens, passwords, IDs, etc. In fact you &lt;a href=&quot;https://jazzy.id.au/2010/09/20/cracking_random_number_generators_part_1.html&quot;&gt;can calculate Random seed using just 2 subsequent generated values&lt;/a&gt;. Also since next() returns only 32 bytes, having longer (e.g. 128-bit) token will not improve security.&lt;/p&gt;
+
+&lt;h4&gt;When to use&lt;/h4&gt;
+
+&lt;p&gt;Use Random or ThreadLocalRandom when you care only about uniformity of generated numbers. These will give you uniform probabilities and decent performance.&lt;/p&gt;
+
+&lt;h2&gt;java.security.SecureRandom&lt;/h2&gt;
+
+&lt;p&gt;As said before biggest problem with Random is that it’s reversible. To break this we may use cryptographically strong (requires many iterations to guess input based on output) hashing function and apply it to generated numbers. In fact SecureRandom is a mini-framework to assemble you own generator from seeding, byte generation and hashing function.&lt;/p&gt;
+
+&lt;h4&gt;Structure&lt;/h4&gt;
+
+&lt;p&gt;SecureRandom is not a generator itself, but a Template pattern around how random generator must operate. It uses Java SPI functionality, that allows you to hook in any implementation of SecureRandomSpi that would be used to actually generate seed and bytes. Other than that, SecureRandom operates similarly to Random.&lt;/p&gt;
+
+&lt;p&gt;In case you need to use different generators in the same application, you can use constructors/factory methods with your implementation or Provider to get SecureRandom instances with different backends.&lt;/p&gt;
+
+&lt;p&gt;So what if you don’t provide your own SPI implementation? Then SecureRandom will fall back to default Sun implementation - sun.security.provider.SecureRandom. Let’s further describe what this Sun implementation does to generate random numbers.&lt;/p&gt;
+
+&lt;h4&gt;Initialization&lt;/h4&gt;
+
+&lt;p&gt;To obtain random seed Sun implementation uses SeedGenerator object. Here you have 3 options:&lt;/p&gt;
+&lt;ol&gt;
+  &lt;li&gt;You can specify a system property to read seed from your URL. In this case URLSeedGenerator instance will be used&lt;/li&gt;
+  &lt;li&gt;If you don’t go 1st option it will attempt to use NativeSeedGenerator (more on this below)&lt;/li&gt;
+  &lt;li&gt;If your OS does not support NativeSeedGenerator, it will fall back to using ThreadSeedGenerator, which will generate seed based on how much time OS takes to switch between application threads.&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;NativeSeedGenerator is the instance that most likely to be used. This generator will use random device of your OS/hardware:&lt;/p&gt;
+&lt;ol&gt;
+  &lt;li&gt;/dev/random/ or /dev/urandom on Unix-likes&lt;/li&gt;
+  &lt;li&gt;Crypto API on Windows
+These devices generate randomness based on user/OS events, e.g. interrupts (IO events such as keystrokes and network events, hardware timers, etc). The exact device used may be found in &lt;em&gt;$JAVA_HOME/lib/security/java.security&lt;/em&gt; file under &lt;em&gt;securerandom.source&lt;/em&gt; property.&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;Why would URLSeedGenerator be necessary? It could be used to implement true random number generator, e.g. you use weather forecast to generate randomness. This data may be supplied as web service and your random generator may use URL of that service to seed itself.&lt;/p&gt;
+
+&lt;h4&gt;Number generation&lt;/h4&gt;
+
+&lt;p&gt;Number generation is similar to Random, however every generated number gets hashed using algorithm that is specified on SecureRandom creation. This way if attacker gets hold of generated values, it is harder to figure out number generation algorithm as they also have to brute force values to get original ones.&lt;/p&gt;
+
+&lt;h4&gt;When to use&lt;/h4&gt;
+
+&lt;p&gt;Use when you need to generate anything that is security-related: temporary passwords, session IDs, tokens, etc.&lt;/p&gt;
+
+&lt;h4&gt;/dev/random blocking&lt;/h4&gt;
+
+&lt;p&gt;I though I write this up separately, as finding this took N man-hours to find out.&lt;/p&gt;
+
+&lt;p&gt;If your system uses /dev/random, it will block until minimal level of randomness is generated. Normally OS save some randomness before restart and no blocking happens. However, if you launch containerized application, there is nothing stored since last launch and you will have to wait. This may take &lt;em&gt;very&lt;/em&gt; long time (I saw this taking over 1 hour on Amazon EC instance), especially if you run it on server setting when no one is pressing keyboard.&lt;/p&gt;
+
+&lt;p&gt;Be wary that some Java components use SecureRandom under the hood, e.g. UUID (when it generates IDs) or File (when creating temporary files), so you may encounter this in situations outside security domain.&lt;/p&gt;
+
+&lt;h2&gt;In place of conclusion&lt;/h2&gt;
+
+&lt;p&gt;Hopefully this sheds some light on how Java random number generators work under the hood. Thanks for reading and stay safe!&lt;/p&gt;
+</description>
+                <pubDate>Mon, 01 Oct 2018 00:00:00 +0100</pubDate>
+                <link>https://romanmarkunas.github.io/core-java/2018/10/01/0005-core-java-random/</link>
+                <guid isPermaLink="true">https://romanmarkunas.github.io/core-java/2018/10/01/0005-core-java-random/</guid>
+                
+                <category>core java</category>
+                
+                <category>java</category>
+                
+            </item>
+        
+            <item>
+                <title>Monty-Hall problem</title>
+                <description>&lt;p&gt;This is totally random write-up and it made it here because it inspired post about Java Random number generation. Here is how it goes…&lt;/p&gt;
+
+&lt;!--more--&gt;
+
+&lt;p&gt;There are 3 doors and behind each is either a car or a goat. There are 2 goats and 1 car altogether. If you try to guess behind which door is a car, what is the chance of getting it right? Easy! 1 out of 3 makes 33,3% chance of getting it right.&lt;/p&gt;
+
+&lt;p&gt;If someone would open a door with a goat (but not the one that you initially chose) and ask you if you want to change your selection? Would you change your choice or stay with initial door?  The correct answer is… if you change door you will have 66,6% of getting a car, but if you stay with initial choice - you stay with initial 33,3% chance.&lt;/p&gt;
+
+&lt;p&gt;Now I though this result is awkward, because when one door opened you have 2 doors to choose, which is essentially 50/50 chance. But the model (which can be found &lt;a href=&quot;https://github.com/romanmarkunas/blog-monty-hall&quot;&gt;here&lt;/a&gt; proves this is incorrect. So Monty-Hall problem suggests that probabilities have temporal linking as well, meaning probability depends on the moment when decision is made as well as your odds.&lt;/p&gt;
+</description>
+                <pubDate>Mon, 01 Oct 2018 00:00:00 +0100</pubDate>
+                <link>https://romanmarkunas.github.io/uncategorized/2018/10/01/0004-uncategorized-monty-hall/</link>
+                <guid isPermaLink="true">https://romanmarkunas.github.io/uncategorized/2018/10/01/0004-uncategorized-monty-hall/</guid>
+                
+            </item>
+        
+            <item>
+                <title>Messaging system latencies, part 1: Apache Kafka</title>
+                <description>&lt;p&gt;Most developers I talk to about Kafka agree on a catchphrase “Kafka is designed for throughput”. That’s fair and you can find plenty of benchmarks that show 700k/s throughput for single producer without replication. But does that mean we should discard Kafka when talking about low latency messaging?&lt;/p&gt;
+
+&lt;p&gt;After quick googling I found &lt;a href=&quot;https://stackoverflow.com/questions/20520492/how-to-minimize-the-latency-involved-in-kafka-messaging-framework&quot;&gt;this outdated SO question&lt;/a&gt;. That question is very old and includes very old version of Kafka (0.7.2 whereas current version is 2.0.0) and also &lt;a href=&quot;https://engineering.linkedin.com/kafka/benchmarking-apache-kafka-2-million-writes-second-three-cheap-machines&quot;&gt;this article&lt;/a&gt; states that very decent latencies (2-3ms 99 percentile) are achievable. Having such controversial info is not enough to make final decision so I decided to create a little benchmark myself, to finally conclude whether Kafka is good for low-latency applications.&lt;/p&gt;
+
+&lt;!--more--&gt;
+
+&lt;h2&gt;What is measured&lt;/h2&gt;
+
+&lt;p&gt;For all tests I run producer, consumer and broker on the same machine. For these tests I used laptop: i7-7820HQ, 16GB, Windows 10 (yes, I know…). This is why pre-allocation is on in broker settings and you will need to disable it should you run provided code on Linux box. Also I didn’t change default Kafka startup scripts, which means brokers had 1GB heap maximum.&lt;/p&gt;
+
+&lt;p&gt;Latency test intent is to test following scenarios:&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;light throughput of 200 messages/second + non-durable broker&lt;/li&gt;
+  &lt;li&gt;light throughput of 200 messages/second + fault-tolerant broker&lt;/li&gt;
+  &lt;li&gt;moderate throughput of 4000 messages/second + non-durable broker&lt;/li&gt;
+  &lt;li&gt;moderate throughput of 4000 messages/second + fault tolerant broker&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;This test do not measure latency drops due to cluster node failovers as these scenarios are very different depending on your partitioning schema and replication factor. Hopefully node failures are not part of your normal day-to-day operations ;)&lt;/p&gt;
+
+&lt;p&gt;As usual, all code can be found &lt;a href=&quot;https://github.com/romanmarkunas/blog-kafka-artemis-latency&quot;&gt;here&lt;/a&gt;, if you want to play around and see how your setup compares. All scenarios are located in test directory under benchmark/LatencyBenchmark.&lt;/p&gt;
+
+&lt;p&gt;For exact broker/client configuration see code above. Also I’ll put a little explanation why these settings were used.&lt;/p&gt;
+
+&lt;h2&gt;Results&lt;/h2&gt;
+
+&lt;h4&gt;Lowest latencies possible&lt;/h4&gt;
+
+&lt;p&gt;Measurements @ 200 messages/s:&lt;/p&gt;
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;Total sent     - 5000
+Total received - 5000
+Send rate      - 200.004
+99 percentile  - 1.576891
+75 percentile  - 1.180825
+Min latency    - 0.593806
+Max latency    - 8.921906
+Avg latency    - 1.085105
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Measurements @ 4000 messages/s:&lt;/p&gt;
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;Total sent     - 50000
+Total received - 50000
+Send rate      - 3837.725
+99 percentile  - 1.327242
+75 percentile  - 0.945013
+Min latency    - 0.413972
+Max latency    - 13.287300
+Avg latency    - 0.802173
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;So these are lowest latencies possible on my machine. Configuration for these:&lt;/p&gt;
+&lt;ol&gt;
+  &lt;li&gt;No batching on producer (consumer always fetches all available messages up to configured size)&lt;/li&gt;
+  &lt;li&gt;No acks on producer&lt;/li&gt;
+  &lt;li&gt;No commits after each message (but uses asynchronous background commits) on consumer&lt;/li&gt;
+  &lt;li&gt;Single node cluster, no replication&lt;/li&gt;
+  &lt;li&gt;Broker has delayed sync to disk&lt;/li&gt;
+  &lt;li&gt;All internal topics are single partition&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;As you can see most messages make a roundtrip within 1-2 ms. There are always outliers at rare occasion, which are caused by different maintenance operations and probably some interference from OS. For example, expired offset removal took around 7 ms.&lt;/p&gt;
+
+&lt;p&gt;Also it’s possible to decrease consumer poll timeout to get smaller max latency at cost of higher 99 percentile.&lt;/p&gt;
+
+&lt;h4&gt;Non fault-tolerant setup with consumer commit after each read&lt;/h4&gt;
+
+&lt;p&gt;Measurements @ 200 messages/s and synchronous commit:&lt;/p&gt;
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;Total sent     - 5000
+Total received - 5000
+Send rate      - 200.004
+99 percentile  - 4.535680
+75 percentile  - 1.927668
+Min latency    - 0.904814
+Max latency    - 9.848230
+Avg latency    - 1.865007
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;I made these measurements as I was curious how synchronous commit affects latency, and it’s roughly 30% overhead.&lt;/p&gt;
+
+&lt;h4&gt;Fault-tolerant setup with synchronous consumer commit&lt;/h4&gt;
+
+&lt;p&gt;Measurements @ 200 messages/s and synchronous commit:&lt;/p&gt;
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;Total sent     - 5000
+Total received - 5000
+Send rate      - 199.989
+99 percentile  - 5.137226
+75 percentile  - 3.924183
+Min latency    - 2.115347
+Max latency    - 14.580346
+Avg latency    - 3.613249
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Measurements @ 4000 messages/s and synchronous commit:&lt;/p&gt;
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;Total sent     - 50000
+Total received - 50000
+Send rate      - 3993.356
+99 percentile  - 17.898772
+75 percentile  - 11.823148
+Min latency    - 5.039950
+Max latency    - 35.926347
+Avg latency    - 11.018564
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Fault tolerant config:&lt;/p&gt;
+&lt;ol&gt;
+  &lt;li&gt;Broker made out of 3 nodes&lt;/li&gt;
+  &lt;li&gt;Producer waits for ack from each broker node&lt;/li&gt;
+  &lt;li&gt;Sync to disk is still delayed&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;For the higher throughput scenario I had to turn batching on and put a setting to batch at most 500 records. Otherwise maximum throughput would be 1000 / MIN_LATENCY = 1000 / 5 = 200 messages/s&lt;/p&gt;
+
+&lt;h2&gt;Conclusion&lt;/h2&gt;
+
+&lt;p&gt;Looks like these articles about huge latencies of 100ms magnitude relate to older versions of Kafka. Replicated operation showed pretty decent results, which should be enough for most cases. Please note that these results are not made on dedicated hardware and I didn’t do any memory/OS settings/affinity tuning, so very likely it’s possible to get even better results.&lt;/p&gt;
+
+&lt;p&gt;There are no measurements for durable messages (force flush each message on disk) and I think tests for such setup are extremely hardware dependent and should be made using proper HDD/SSD.&lt;/p&gt;
+
+&lt;p&gt;My takeaway from this is that unless you need sub-millisecond latencies I could do with Kafka. Unless you are in that outlier part of spectrum technologies/solution selection must be done based on functionality it provides and not on specific performance parameters. And of course reusing well-known technology is much better than having a zoo of trendy names, that barely anyone in team understands properly.&lt;/p&gt;
+
+&lt;h2&gt;P.S.&lt;/h2&gt;
+
+&lt;p&gt;Coming soon! Follow-up post where same tests are performed with Apache Artemis (former ActiveMQ).&lt;/p&gt;
+</description>
+                <pubDate>Sat, 22 Sep 2018 00:00:00 +0100</pubDate>
+                <link>https://romanmarkunas.github.io/messaging/2018/09/22/0003-messaging-messaging-system-latencies-1-kafka/</link>
+                <guid isPermaLink="true">https://romanmarkunas.github.io/messaging/2018/09/22/0003-messaging-messaging-system-latencies-1-kafka/</guid>
+                
+                <category>kafka</category>
+                
+                <category>messaging</category>
+                
+                <category>low latency</category>
+                
+            </item>
         
             <item>
                 <title>Introduction to Java coroutines</title>
@@ -204,7 +902,7 @@ Fiber execution took 1661 ms
                 
                 <category>coroutines</category>
                 
-                <category>Java</category>
+                <category>java</category>
                 
                 <category>concurrency</category>
                 
@@ -212,7 +910,7 @@ Fiber execution took 1661 ms
                 
                 <category>non-blocking IO</category>
                 
-                <category>Quasar</category>
+                <category>quasar</category>
                 
             </item>
         

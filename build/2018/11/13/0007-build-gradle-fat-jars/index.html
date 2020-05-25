@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>Hello World!</title> 
-    <meta name="description" content="Dummy post to start off my blog">
+    <title>Creating fat JARs with gradle</title> 
+    <meta name="description" content="Example snippets to package JVM application into single fat JAR with gradle">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <link rel="shortcut icon" href="/favicon.ico">
@@ -12,7 +12,7 @@
 
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:400,400i,700,700i&display=swap" />
     <link rel="stylesheet" href="/css/main.css" />
-    <link rel="canonical" href="https://romanmarkunas.github.io/uncategorized/2018/02/03/0001-uncategorized-hello-world/">
+    <link rel="canonical" href="https://romanmarkunas.github.io/build/2018/11/13/0007-build-gradle-fat-jars/">
     <link rel="alternate" type="application/rss+xml" title="Roman Markunas (Romans Markuns) blog Feed" href="https://romanmarkunas.github.io/feed.xml">
 </head>
 <body onload="transformSyntaxHiglightsBecausePygmentsJavaLexerIsRubbish();">
@@ -83,14 +83,14 @@
     <article class="post post-full">
         <header class="post-header">
             <div class="post-header-wrap">
-                <h1 class="post-title outer">Hello World!</h1>
+                <h1 class="post-title outer">Creating fat JARs with gradle</h1>
             </div>
         </header><!-- .post-header -->
         <div class="post-content inner-small outer">
-            <time class="published" datetime="">2018-02-03</time><span class="reading-time" title="Estimated read time">
+            <time class="published" datetime="">2018-11-13</time><span class="reading-time" title="Estimated read time">
   
   
-    	&mdash; 1 min read
+    	&mdash; 3 min read
   
 </span>
 
@@ -98,35 +98,145 @@
             <br>
 
             
+            
+            <a href="/tags/index.html#build" rel="tag" id="a-post-tag">#build</a>
+            
+            <a href="/tags/index.html#gradle" rel="tag" id="a-post-tag">#gradle</a>
+            
+            <a href="/tags/index.html#java" rel="tag" id="a-post-tag">#java</a>
+            
+            <br>
+            
             <br>
 
-            <p>Well, I’ve finally made it! Every big boy must have a blog they say, and now I have one as well. Let’s see how it goes…</p>
+            <p>Here’s a quick tutorial on how to package your java application and dependencies into single fat JAR (shadow JAR, capsule, however it’s called) with gradle.</p>
+
+<!--more-->
+
+<h2>Easy solution using built-in JAR gradle plugin</h2>
+
+<div class="language-groovy highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">jar</span> <span class="o">{</span>
+   <span class="n">from</span> <span class="o">{</span><span class="n">configurations</span><span class="o">.</span><span class="na">compile</span><span class="o">.</span><span class="na">collect</span> <span class="o">{</span> <span class="n">it</span><span class="o">.</span><span class="na">isDirectory</span><span class="o">()</span> <span class="o">?</span> <span class="n">it</span> <span class="o">:</span> <span class="n">zipTree</span><span class="o">(</span><span class="n">it</span><span class="o">)</span> <span class="o">}</span> <span class="o">}</span>
+<span class="o">}</span>
+</code></pre></div></div>
+
+<p>What it means:</p>
+<ul>
+  <li><em>jar</em> - packaging task available in gradle as part of <em>java</em> plugin</li>
+  <li><em>from</em> - copies passed FileTree into JAR</li>
+  <li><em>configurations</em> - holds all configurations (set of dependencies)</li>
+  <li><em>compile</em> - I used compile configuration for this particular example, but this could be any other or even a separate configuration just for fat JAR</li>
+  <li><em>zipTree</em> - this returns zipped file tree object, because JAR files essentially are ZIP files with specific file arrangement and content</li>
+</ul>
+
+<p>While this is nice one-liner that uses only built-in gradle stuff, it will work only in cases when there are no name clashes in all dependencies. For example, if more than one dependency implements Java SPI service interface you will have multiple resources with the same name and only last one will make it into fat JAR.</p>
+
+<h2>Using Shadow JAR plugin</h2>
+
+<div class="language-groovy highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">buildscript</span> <span class="o">{</span>
+    <span class="n">dependencies</span> <span class="o">{</span>
+        <span class="n">classpath</span> <span class="s1">'com.github.jengelman.gradle.plugins:shadow:4.0.1'</span>
+    <span class="o">}</span>
+<span class="o">}</span>
+
+<span class="n">apply</span> <span class="nl">plugin:</span> <span class="s1">'com.github.johnrengelman.shadow'</span>
+
+<span class="n">shadowJar</span> <span class="o">{</span>
+    <span class="n">mergeServiceFiles</span><span class="o">()</span>
+<span class="o">}</span>
+</code></pre></div></div>
+
+<p>Internally this plugin does the same thing as previous one-liner, plus:</p>
+<ul>
+  <li>It collates SPI service files</li>
+  <li>inherits configuration from <em>jar</em> task so that you may define manifest in standard familiar way:</li>
+</ul>
+
+<div class="language-groovy highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">jar</span> <span class="o">{</span>
+    <span class="n">manifest</span> <span class="o">{</span>
+        <span class="n">attributes</span><span class="o">(</span>
+            <span class="s1">'Main-Class'</span><span class="o">:</span> <span class="s2">"com.example.CraneBookingApplication"</span>
+        <span class="o">)</span>
+    <span class="o">}</span>
+<span class="o">}</span>
+</code></pre></div></div>
+
+<h2>Using Shadow JAR plugin with Windows</h2>
+
+<p>There is important caveat for Windows users however with previous method. Shadow JAR uses <em>\n</em> as line separator when merging SPI files. Consequently, when JAR is run on Windows JVM will not be able to correctly read file line-by-line. To avoid this, we define custom service file transformer in <em>build.gradle</em> that will use <em>\r\n</em> as line separator:</p>
+
+<div class="language-groovy highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kn">import</span> <span class="nn">com.github.jengelman.gradle.plugins.shadow.relocation.Relocator</span>
+<span class="kn">import</span> <span class="nn">com.github.jengelman.gradle.plugins.shadow.transformers.ServiceFileTransformer</span>
+
+<span class="kd">class</span> <span class="nc">WindowsTransformer</span> <span class="kd">extends</span> <span class="n">ServiceFileTransformer</span> <span class="o">{</span>
+
+    <span class="nd">@Override</span>
+    <span class="kt">void</span> <span class="nf">transform</span><span class="o">(</span><span class="n">String</span> <span class="n">path</span><span class="o">,</span> <span class="n">InputStream</span> <span class="n">is</span><span class="o">,</span> <span class="n">List</span><span class="o">&lt;</span><span class="n">Relocator</span><span class="o">&gt;</span> <span class="n">relocators</span><span class="o">)</span> <span class="o">{</span>
+        <span class="kt">def</span> <span class="n">lines</span> <span class="o">=</span> <span class="n">is</span><span class="o">.</span><span class="na">readLines</span><span class="o">()</span>
+        
+        <span class="n">relocators</span><span class="o">.</span><span class="na">each</span> <span class="o">{</span><span class="n">rel</span> <span class="o">-&gt;</span>
+            <span class="k">if</span> <span class="o">(</span><span class="n">rel</span><span class="o">.</span><span class="na">canRelocateClass</span><span class="o">(</span><span class="k">new</span> <span class="n">File</span><span class="o">(</span><span class="n">path</span><span class="o">).</span><span class="na">name</span><span class="o">))</span> <span class="o">{</span>
+                <span class="n">path</span> <span class="o">=</span> <span class="n">rel</span><span class="o">.</span><span class="na">relocateClass</span><span class="o">(</span><span class="n">path</span><span class="o">)</span>
+            <span class="o">}</span>
+            <span class="n">lines</span><span class="o">.</span><span class="na">eachWithIndex</span> <span class="o">{</span> <span class="n">String</span> <span class="n">line</span><span class="o">,</span> <span class="kt">int</span> <span class="n">i</span> <span class="o">-&gt;</span>
+                <span class="k">if</span> <span class="o">(</span><span class="n">rel</span><span class="o">.</span><span class="na">canRelocateClass</span><span class="o">(</span><span class="n">line</span><span class="o">))</span> <span class="o">{</span>
+                    <span class="n">lines</span><span class="o">[</span><span class="n">i</span><span class="o">]</span> <span class="o">=</span> <span class="n">rel</span><span class="o">.</span><span class="na">relocateClass</span><span class="o">(</span><span class="n">line</span><span class="o">)</span>
+                <span class="o">}</span>
+            <span class="o">}</span>
+        <span class="o">}</span>
+        
+        <span class="n">lines</span><span class="o">.</span><span class="na">each</span> <span class="o">{</span> <span class="n">line</span> <span class="o">-&gt;</span> <span class="n">serviceEntries</span><span class="o">[</span><span class="n">path</span><span class="o">]</span>
+                <span class="o">.</span><span class="na">append</span><span class="o">(</span><span class="k">new</span> <span class="n">ByteArrayInputStream</span><span class="o">((</span><span class="n">line</span> <span class="o">+</span> <span class="s2">"\r\n"</span><span class="o">).</span><span class="na">getBytes</span><span class="o">()))</span>
+        <span class="o">}</span>
+    <span class="o">}</span>
+<span class="o">}</span>
+
+<span class="n">shadowJar</span> <span class="o">{</span>
+<span class="c1">//    mergeServiceFiles() - should not be used, as it uses default transformer</span>
+    <span class="n">transform</span><span class="o">(</span><span class="n">WindowsTransformer</span><span class="o">.</span><span class="na">class</span><span class="o">)</span>
+<span class="o">}</span>
+</code></pre></div></div>
         </div><!-- .post-content -->
         <footer class="post-footer inner-small outer">
             <div class="post-share">
                 <span>Share:</span>
                 <a class="button button-icon button-fill-horz"
-                    href="https://twitter.com/intent/tweet?text=Hello%20World!&amp;url=https://romanmarkunas.github.io/uncategorized/2018/02/03/0001-uncategorized-hello-world/"
+                    href="https://twitter.com/intent/tweet?text=Creating%20fat%20JARs%20with%20gradle&amp;url=https://romanmarkunas.github.io/build/2018/11/13/0007-build-gradle-fat-jars/"
                     target="_blank" rel="noopener"><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M23.954 4.569a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.691 8.094 4.066 6.13 1.64 3.161a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.061a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.937 4.937 0 004.604 3.417 9.868 9.868 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.054 0 13.999-7.496 13.999-13.986 0-.209 0-.42-.015-.63a9.936 9.936 0 002.46-2.548l-.047-.02z"/></svg><span
                         class="screen-reader-text">Share on Twitter</span></a>
                 <a class="button button-icon button-fill-horz"
-                    href="https://www.facebook.com/sharer/sharer.php?u=https://romanmarkunas.github.io/uncategorized/2018/02/03/0001-uncategorized-hello-world/&amp;t=Hello%20World!"
+                    href="https://www.facebook.com/sharer/sharer.php?u=https://romanmarkunas.github.io/build/2018/11/13/0007-build-gradle-fat-jars/&amp;t=Creating%20fat%20JARs%20with%20gradle"
                     target="_blank" rel="noopener"><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M23.998 12c0-6.628-5.372-12-11.999-12C5.372 0 0 5.372 0 12c0 5.988 4.388 10.952 10.124 11.852v-8.384H7.078v-3.469h3.046V9.356c0-3.008 1.792-4.669 4.532-4.669 1.313 0 2.686.234 2.686.234v2.953H15.83c-1.49 0-1.955.925-1.955 1.874V12h3.328l-.532 3.469h-2.796v8.384c5.736-.9 10.124-5.864 10.124-11.853z"/></svg><span
                         class="screen-reader-text">Share on Facebook</span></a>
             </div>
+<!--            -->
+<!--            <div class="post-tags">-->
+<!--                <span>Tags:</span>-->
+<!--                <a href="/tags/index.html#build" rel="tag">build</a><a href="/tags/index.html#gradle" rel="tag">gradle</a><a href="/tags/index.html#java" rel="tag">java</a>-->
+<!--            </div>-->
 <!--            -->
         </footer><!-- .post-footer -->
     </article><!-- .post -->
     <nav class="post-navigation">
         <h2 class="screen-reader-text">Read Next</h2>
         
+        <div class="nav-previous">
+            <div class="nav-inside inner-small outer">
+                
+                <div class="nav-before">Previous</div>
+                <h3 class="nav-title"><a href="/messaging/2018/10/01/0006-messaging-kafka-in-practice-1-producer/">Kafka transactions in practice 1: Producer</a>
+                </h3>
+                <div class="nav-date">October 1, 2018</div>
+            </div><!-- .nav-inside -->
+        </div><!-- .nav-previous -->
+        
         
         <div class="nav-next">
             <div class="nav-inside inner-small outer">
                 
                 <div class="nav-before">Next</div>
-                <h3 class="nav-title"><a href="/concurrency/2018/04/02/0002-concurrency-introduction-to-java-coroutines/">Introduction to Java coroutines</a></h3>
-                <div class="nav-date">April 2, 2018</div>
+                <h3 class="nav-title"><a href="/microservices/2018/11/15/0008-microservices-dropwizard-101/">Getting started with Dropwizard</a></h3>
+                <div class="nav-date">November 15, 2018</div>
             </div><!-- .nav-inside -->
         </div><!-- .nav-next -->
         
@@ -139,8 +249,8 @@
             <script type="text/javascript">
                 var HYVOR_TALK_WEBSITE = 708; // DO NOT CHANGE THIS
                 var HYVOR_TALK_CONFIG = {
-                    url: 'https://romanmarkunas.github.io/uncategorized/2018/02/03/0001-uncategorized-hello-world/',
-                    id: '/uncategorized/2018/02/03/--0001---uncategorized---hello-world'
+                    url: 'https://romanmarkunas.github.io/build/2018/11/13/0007-build-gradle-fat-jars/',
+                    id: '/build/2018/11/13/--0007---build---gradle-fat-jars'
                 };
             </script>
             <script async type="text/javascript" src="//talk.hyvor.com/web-api/embed"></script>

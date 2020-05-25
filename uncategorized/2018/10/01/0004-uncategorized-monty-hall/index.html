@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>Hello World!</title> 
-    <meta name="description" content="Dummy post to start off my blog">
+    <title>Monty-Hall problem</title> 
+    <meta name="description" content="Learn about Monty-Hall problem and code to prove it. Warning: Mind bending probabilities!">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <link rel="shortcut icon" href="/favicon.ico">
@@ -12,7 +12,7 @@
 
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:400,400i,700,700i&display=swap" />
     <link rel="stylesheet" href="/css/main.css" />
-    <link rel="canonical" href="https://romanmarkunas.github.io/uncategorized/2018/02/03/0001-uncategorized-hello-world/">
+    <link rel="canonical" href="https://romanmarkunas.github.io/uncategorized/2018/10/01/0004-uncategorized-monty-hall/">
     <link rel="alternate" type="application/rss+xml" title="Roman Markunas (Romans Markuns) blog Feed" href="https://romanmarkunas.github.io/feed.xml">
 </head>
 <body onload="transformSyntaxHiglightsBecausePygmentsJavaLexerIsRubbish();">
@@ -83,11 +83,11 @@
     <article class="post post-full">
         <header class="post-header">
             <div class="post-header-wrap">
-                <h1 class="post-title outer">Hello World!</h1>
+                <h1 class="post-title outer">Monty-Hall problem</h1>
             </div>
         </header><!-- .post-header -->
         <div class="post-content inner-small outer">
-            <time class="published" datetime="">2018-02-03</time><span class="reading-time" title="Estimated read time">
+            <time class="published" datetime="">2018-10-01</time><span class="reading-time" title="Estimated read time">
   
   
     	&mdash; 1 min read
@@ -100,17 +100,25 @@
             
             <br>
 
-            <p>Well, I’ve finally made it! Every big boy must have a blog they say, and now I have one as well. Let’s see how it goes…</p>
+            <p>This is totally random write-up and it made it here because it inspired post about Java Random number generation. Here is how it goes…</p>
+
+<!--more-->
+
+<p>There are 3 doors and behind each is either a car or a goat. There are 2 goats and 1 car altogether. If you try to guess behind which door is a car, what is the chance of getting it right? Easy! 1 out of 3 makes 33,3% chance of getting it right.</p>
+
+<p>If someone would open a door with a goat (but not the one that you initially chose) and ask you if you want to change your selection? Would you change your choice or stay with initial door?  The correct answer is… if you change door you will have 66,6% of getting a car, but if you stay with initial choice - you stay with initial 33,3% chance.</p>
+
+<p>Now I though this result is awkward, because when one door opened you have 2 doors to choose, which is essentially 50/50 chance. But the model (which can be found <a href="https://github.com/romanmarkunas/blog-monty-hall">here</a> proves this is incorrect. So Monty-Hall problem suggests that probabilities have temporal linking as well, meaning probability depends on the moment when decision is made as well as your odds.</p>
         </div><!-- .post-content -->
         <footer class="post-footer inner-small outer">
             <div class="post-share">
                 <span>Share:</span>
                 <a class="button button-icon button-fill-horz"
-                    href="https://twitter.com/intent/tweet?text=Hello%20World!&amp;url=https://romanmarkunas.github.io/uncategorized/2018/02/03/0001-uncategorized-hello-world/"
+                    href="https://twitter.com/intent/tweet?text=Monty-Hall%20problem&amp;url=https://romanmarkunas.github.io/uncategorized/2018/10/01/0004-uncategorized-monty-hall/"
                     target="_blank" rel="noopener"><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M23.954 4.569a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.691 8.094 4.066 6.13 1.64 3.161a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.061a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.937 4.937 0 004.604 3.417 9.868 9.868 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.054 0 13.999-7.496 13.999-13.986 0-.209 0-.42-.015-.63a9.936 9.936 0 002.46-2.548l-.047-.02z"/></svg><span
                         class="screen-reader-text">Share on Twitter</span></a>
                 <a class="button button-icon button-fill-horz"
-                    href="https://www.facebook.com/sharer/sharer.php?u=https://romanmarkunas.github.io/uncategorized/2018/02/03/0001-uncategorized-hello-world/&amp;t=Hello%20World!"
+                    href="https://www.facebook.com/sharer/sharer.php?u=https://romanmarkunas.github.io/uncategorized/2018/10/01/0004-uncategorized-monty-hall/&amp;t=Monty-Hall%20problem"
                     target="_blank" rel="noopener"><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M23.998 12c0-6.628-5.372-12-11.999-12C5.372 0 0 5.372 0 12c0 5.988 4.388 10.952 10.124 11.852v-8.384H7.078v-3.469h3.046V9.356c0-3.008 1.792-4.669 4.532-4.669 1.313 0 2.686.234 2.686.234v2.953H15.83c-1.49 0-1.955.925-1.955 1.874V12h3.328l-.532 3.469h-2.796v8.384c5.736-.9 10.124-5.864 10.124-11.853z"/></svg><span
                         class="screen-reader-text">Share on Facebook</span></a>
             </div>
@@ -120,13 +128,23 @@
     <nav class="post-navigation">
         <h2 class="screen-reader-text">Read Next</h2>
         
+        <div class="nav-previous">
+            <div class="nav-inside inner-small outer">
+                
+                <div class="nav-before">Previous</div>
+                <h3 class="nav-title"><a href="/messaging/2018/09/22/0003-messaging-messaging-system-latencies-1-kafka/">Messaging system latencies, part 1: Apache Kafka</a>
+                </h3>
+                <div class="nav-date">September 22, 2018</div>
+            </div><!-- .nav-inside -->
+        </div><!-- .nav-previous -->
+        
         
         <div class="nav-next">
             <div class="nav-inside inner-small outer">
                 
                 <div class="nav-before">Next</div>
-                <h3 class="nav-title"><a href="/concurrency/2018/04/02/0002-concurrency-introduction-to-java-coroutines/">Introduction to Java coroutines</a></h3>
-                <div class="nav-date">April 2, 2018</div>
+                <h3 class="nav-title"><a href="/core-java/2018/10/01/0005-core-java-random/">Notes on Java Random</a></h3>
+                <div class="nav-date">October 1, 2018</div>
             </div><!-- .nav-inside -->
         </div><!-- .nav-next -->
         
@@ -139,8 +157,8 @@
             <script type="text/javascript">
                 var HYVOR_TALK_WEBSITE = 708; // DO NOT CHANGE THIS
                 var HYVOR_TALK_CONFIG = {
-                    url: 'https://romanmarkunas.github.io/uncategorized/2018/02/03/0001-uncategorized-hello-world/',
-                    id: '/uncategorized/2018/02/03/--0001---uncategorized---hello-world'
+                    url: 'https://romanmarkunas.github.io/uncategorized/2018/10/01/0004-uncategorized-monty-hall/',
+                    id: '/uncategorized/2018/10/01/--0004---uncategorized---monty-hall'
                 };
             </script>
             <script async type="text/javascript" src="//talk.hyvor.com/web-api/embed"></script>

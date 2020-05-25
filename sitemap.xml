@@ -3,6 +3,108 @@
 
     
     <url>
+        <loc>https://romanmarkunas.github.io/microservices/2018/11/15/0008-microservices-dropwizard-101/</loc>
+        
+        <lastmod>2020-05-25</lastmod>
+        
+
+        
+        <changefreq>monthly</changefreq>
+        
+
+        
+        <priority>0.7</priority>
+        
+    </url>
+    
+
+    
+    <url>
+        <loc>https://romanmarkunas.github.io/build/2018/11/13/0007-build-gradle-fat-jars/</loc>
+        
+        <lastmod>2020-05-25</lastmod>
+        
+
+        
+        <changefreq>monthly</changefreq>
+        
+
+        
+        <priority>0.7</priority>
+        
+    </url>
+    
+
+    
+    <url>
+        <loc>https://romanmarkunas.github.io/messaging/2018/10/01/0006-messaging-kafka-in-practice-1-producer/</loc>
+        
+        <lastmod>2020-05-25</lastmod>
+        
+
+        
+        <changefreq>monthly</changefreq>
+        
+
+        
+        <priority>0.7</priority>
+        
+    </url>
+    
+
+    
+    <url>
+        <loc>https://romanmarkunas.github.io/core-java/2018/10/01/0005-core-java-random/</loc>
+        
+        <lastmod>2020-05-25</lastmod>
+        
+
+        
+        <changefreq>monthly</changefreq>
+        
+
+        
+        <priority>0.7</priority>
+        
+    </url>
+    
+
+    
+    <url>
+        <loc>https://romanmarkunas.github.io/uncategorized/2018/10/01/0004-uncategorized-monty-hall/</loc>
+        
+        <lastmod>2020-05-24</lastmod>
+        
+
+        
+        <changefreq>monthly</changefreq>
+        
+
+        
+        <priority>0.7</priority>
+        
+    </url>
+    
+
+    
+    <url>
+        <loc>https://romanmarkunas.github.io/messaging/2018/09/22/0003-messaging-messaging-system-latencies-1-kafka/</loc>
+        
+        <lastmod>2020-05-24</lastmod>
+        
+
+        
+        <changefreq>monthly</changefreq>
+        
+
+        
+        <priority>0.7</priority>
+        
+    </url>
+    
+
+    
+    <url>
         <loc>https://romanmarkunas.github.io/concurrency/2018/04/02/0002-concurrency-introduction-to-java-coroutines/</loc>
         
         <lastmod>2020-05-23</lastmod>
@@ -45,7 +147,7 @@
     <url>
         <loc>https://romanmarkunas.github.io/tags/</loc>
         
-        <lastmod>2020-05-23T20:46:43+01:00</lastmod>
+        <lastmod>2020-05-25T19:00:12+01:00</lastmod>
         
 
         
@@ -62,7 +164,7 @@
     <url>
         <loc>https://romanmarkunas.github.io/</loc>
         
-        <lastmod>2020-05-23T20:46:43+01:00</lastmod>
+        <lastmod>2020-05-25T19:00:12+01:00</lastmod>
         
 
         
@@ -79,7 +181,24 @@
     <url>
         <loc>https://romanmarkunas.github.io/css/main.css</loc>
         
-        <lastmod>2020-05-23T20:46:43+01:00</lastmod>
+        <lastmod>2020-05-25T19:00:12+01:00</lastmod>
+        
+
+        
+        <changefreq>monthly</changefreq>
+        
+
+        
+        <priority>0.3</priority>
+        
+    </url>
+    
+
+    
+    <url>
+        <loc>https://romanmarkunas.github.io/robots.txt</loc>
+        
+        <lastmod>2020-05-25T19:00:12+01:00</lastmod>
         
 
         
@@ -98,7 +217,7 @@
     <url>
         <loc>https://romanmarkunas.github.io/style-guide/</loc>
         
-        <lastmod>2020-05-23T20:46:43+01:00</lastmod>
+        <lastmod>2020-05-25T19:00:12+01:00</lastmod>
         
 
         
@@ -113,9 +232,332 @@
 
     
     <url>
+        <loc>https://romanmarkunas.github.io/web/blog/hello-world/</loc>
+        
+        <lastmod>2020-05-25T19:00:12+01:00</lastmod>
+        
+
+        
+        <changefreq>monthly</changefreq>
+        
+
+        
+        <priority>0.3</priority>
+        
+    </url>
+    
+
+    
+    <url>
+        <loc>https://romanmarkunas.github.io/hello-world/</loc>
+        
+        <lastmod>2020-05-25T19:00:12+01:00</lastmod>
+        
+
+        
+        <changefreq>monthly</changefreq>
+        
+
+        
+        <priority>0.3</priority>
+        
+    </url>
+    
+
+    
+    <url>
+        <loc>https://romanmarkunas.github.io/web/blog/introduction-to-java-coroutines/</loc>
+        
+        <lastmod>2020-05-25T19:00:12+01:00</lastmod>
+        
+
+        
+        <changefreq>monthly</changefreq>
+        
+
+        
+        <priority>0.3</priority>
+        
+    </url>
+    
+
+    
+    <url>
+        <loc>https://romanmarkunas.github.io/introduction-to-java-coroutines/</loc>
+        
+        <lastmod>2020-05-25T19:00:12+01:00</lastmod>
+        
+
+        
+        <changefreq>monthly</changefreq>
+        
+
+        
+        <priority>0.3</priority>
+        
+    </url>
+    
+
+    
+    <url>
+        <loc>https://romanmarkunas.github.io/web/blog/messaging-system-latencies-part-1-apache-kafka/</loc>
+        
+        <lastmod>2020-05-25T19:00:12+01:00</lastmod>
+        
+
+        
+        <changefreq>monthly</changefreq>
+        
+
+        
+        <priority>0.3</priority>
+        
+    </url>
+    
+
+    
+    <url>
+        <loc>https://romanmarkunas.github.io/messaging-system-latencies-part-1-apache-kafka/</loc>
+        
+        <lastmod>2020-05-25T19:00:12+01:00</lastmod>
+        
+
+        
+        <changefreq>monthly</changefreq>
+        
+
+        
+        <priority>0.3</priority>
+        
+    </url>
+    
+
+    
+    <url>
+        <loc>https://romanmarkunas.github.io/web/blog/monty-hall-problem/</loc>
+        
+        <lastmod>2020-05-25T19:00:12+01:00</lastmod>
+        
+
+        
+        <changefreq>monthly</changefreq>
+        
+
+        
+        <priority>0.3</priority>
+        
+    </url>
+    
+
+    
+    <url>
+        <loc>https://romanmarkunas.github.io/monty-hall-problem/</loc>
+        
+        <lastmod>2020-05-25T19:00:12+01:00</lastmod>
+        
+
+        
+        <changefreq>monthly</changefreq>
+        
+
+        
+        <priority>0.3</priority>
+        
+    </url>
+    
+
+    
+    <url>
+        <loc>https://romanmarkunas.github.io/web/blog/notes-on-java-random/</loc>
+        
+        <lastmod>2020-05-25T19:00:12+01:00</lastmod>
+        
+
+        
+        <changefreq>monthly</changefreq>
+        
+
+        
+        <priority>0.3</priority>
+        
+    </url>
+    
+
+    
+    <url>
+        <loc>https://romanmarkunas.github.io/notes-on-java-random/</loc>
+        
+        <lastmod>2020-05-25T19:00:12+01:00</lastmod>
+        
+
+        
+        <changefreq>monthly</changefreq>
+        
+
+        
+        <priority>0.3</priority>
+        
+    </url>
+    
+
+    
+    <url>
+        <loc>https://romanmarkunas.github.io/web/blog/kafka-transactions-in-practice-1-producer/</loc>
+        
+        <lastmod>2020-05-25T19:00:12+01:00</lastmod>
+        
+
+        
+        <changefreq>monthly</changefreq>
+        
+
+        
+        <priority>0.3</priority>
+        
+    </url>
+    
+
+    
+    <url>
+        <loc>https://romanmarkunas.github.io/kafka-transactions-in-practice-1-producer/</loc>
+        
+        <lastmod>2020-05-25T19:00:12+01:00</lastmod>
+        
+
+        
+        <changefreq>monthly</changefreq>
+        
+
+        
+        <priority>0.3</priority>
+        
+    </url>
+    
+
+    
+    <url>
+        <loc>https://romanmarkunas.github.io/web/blog/creating-fat-jars-with-gradle/</loc>
+        
+        <lastmod>2020-05-25T19:00:12+01:00</lastmod>
+        
+
+        
+        <changefreq>monthly</changefreq>
+        
+
+        
+        <priority>0.3</priority>
+        
+    </url>
+    
+
+    
+    <url>
+        <loc>https://romanmarkunas.github.io/creating-fat-jars-with-gradle/</loc>
+        
+        <lastmod>2020-05-25T19:00:12+01:00</lastmod>
+        
+
+        
+        <changefreq>monthly</changefreq>
+        
+
+        
+        <priority>0.3</priority>
+        
+    </url>
+    
+
+    
+    <url>
+        <loc>https://romanmarkunas.github.io/web/blog/getting-started-with-dropwizard/</loc>
+        
+        <lastmod>2020-05-25T19:00:12+01:00</lastmod>
+        
+
+        
+        <changefreq>monthly</changefreq>
+        
+
+        
+        <priority>0.3</priority>
+        
+    </url>
+    
+
+    
+    <url>
+        <loc>https://romanmarkunas.github.io/getting-started-with-dropwizard/</loc>
+        
+        <lastmod>2020-05-25T19:00:12+01:00</lastmod>
+        
+
+        
+        <changefreq>monthly</changefreq>
+        
+
+        
+        <priority>0.3</priority>
+        
+    </url>
+    
+
+    
+    <url>
+        <loc>https://romanmarkunas.github.io/web/blog/</loc>
+        
+        <lastmod>2020-05-25T19:00:12+01:00</lastmod>
+        
+
+        
+        <changefreq>monthly</changefreq>
+        
+
+        
+        <priority>0.3</priority>
+        
+    </url>
+    
+
+    
+    <url>
+        <loc>https://romanmarkunas.github.io/redirects.json</loc>
+        
+        <lastmod>2020-05-25T19:00:12+01:00</lastmod>
+        
+
+        
+        <changefreq>monthly</changefreq>
+        
+
+        
+        <priority>0.3</priority>
+        
+    </url>
+    
+
+    
+    <url>
+        <loc>https://romanmarkunas.github.io/blog/page2/</loc>
+        
+        <lastmod>2020-05-25T19:00:12+01:00</lastmod>
+        
+
+        
+        <changefreq>weekly</changefreq>
+        
+
+        
+        <priority>0.3</priority>
+        
+    </url>
+    
+
+    
+    <url>
         <loc>https://romanmarkunas.github.io/css/main.css.map</loc>
         
-        <lastmod>2020-05-23T20:46:43+01:00</lastmod>
+        <lastmod>2020-05-25T19:00:12+01:00</lastmod>
         
 
         

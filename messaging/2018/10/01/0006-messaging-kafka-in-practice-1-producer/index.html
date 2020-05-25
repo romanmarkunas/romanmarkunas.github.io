@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Kafka transactions in practice 1: Producer</title> 
+    <meta name="description" content="Practical guide on how to, when to and why use Kafka transactional producer">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link rel="shortcut icon" href="/favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:400,400i,700,700i&display=swap" />
+    <link rel="stylesheet" href="/css/main.css" />
+    <link rel="canonical" href="https://romanmarkunas.github.io/messaging/2018/10/01/0006-messaging-kafka-in-practice-1-producer/">
+    <link rel="alternate" type="application/rss+xml" title="Roman Markunas (Romans Markuns) blog Feed" href="https://romanmarkunas.github.io/feed.xml">
+</head>
+<body onload="transformSyntaxHiglightsBecausePygmentsJavaLexerIsRubbish();">
+    <div class="site">
+        <nav id="top" class="site-nav outer" aria-label="Main Menu">
+    <div class="inner">
+        <div class="site-nav-inside">
+
+            <button id="menu-show" class="js-menu-toggle"><span class="icon icon-menu"
+                    aria-hidden="true"></span>Menu</button>
+
+            <div class="menu-panel">
+                <div class="menu-panel-scrollable">
+                    <div class="menu-panel-top">
+                        <button id="menu-hide" class="js-menu-toggle button button-icon button-fill-horz"><span class="icon icon-close" aria-hidden="true"></span><span class="screen-reader-text">Close</span></button>
+                    </div>
+                    <ul class="menu">
+                        
+                        
+                        
+                        <li class="menu-item ">
+                            <a href="/">Home</a>
+                        </li>
+                        
+                        
+                        
+                        <li class="menu-item ">
+                            <a href="/tags/">Archive</a>
+                        </li>
+                        
+                    </ul>
+                </div>
+            </div><!-- .menu-panel -->
+
+            <ul class="actions">
+                <li>
+                    <a class="button button-icon button-fill-horz"
+                       href="https://www.linkedin.com/in/romansmarkuns"><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg><span class="screen-reader-text">LinkedIn</span></a>
+                </li>
+                <li>
+                    <a class="button button-icon button-fill-horz"
+                       href="https://github.com/romanmarkunas"><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg><span class="screen-reader-text">GitHub</span></a>
+                </li>
+                <li>
+                    <a class="button button-icon button-fill-horz"
+                        href="/feed.xml"><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M19.199 24C19.199 13.467 10.533 4.8 0 4.8V0c13.165 0 24 10.835 24 24h-4.801zM3.291 17.415c1.814 0 3.293 1.479 3.293 3.295 0 1.813-1.485 3.29-3.301 3.29C1.47 24 0 22.526 0 20.71s1.475-3.294 3.291-3.295zM15.909 24h-4.665c0-6.169-5.075-11.245-11.244-11.245V8.09c8.727 0 15.909 7.184 15.909 15.91z"/></svg><span class="screen-reader-text">Subscribe</span></a>
+                </li>
+            </ul><!-- .actions -->
+
+        </div><!-- .site-nav-inside -->
+    </div><!-- .inner -->
+</nav><!-- .site-nav -->
+
+        <header class="site-alto-header outer">
+    <div class="inner">
+        <div class="site-header-inside">
+
+<!--            -->
+
+        </div><!-- .site-header-inside -->
+    </div><!-- .inner -->
+</header><!-- .site-header -->
+
+        <div class="site-content outer">
+            <div class="inner">
+                <main class="site-main">
+                    <div class="primary">
+    <article class="post post-full">
+        <header class="post-header">
+            <div class="post-header-wrap">
+                <h1 class="post-title outer">Kafka transactions in practice 1: Producer</h1>
+            </div>
+        </header><!-- .post-header -->
+        <div class="post-content inner-small outer">
+            <time class="published" datetime="">2018-10-01</time><span class="reading-time" title="Estimated read time">
+  
+  
+    	&mdash; 7 min read
+  
+</span>
+
+
+            <br>
+
+            
+            
+            <a href="/tags/index.html#messaging" rel="tag" id="a-post-tag">#messaging</a>
+            
+            <a href="/tags/index.html#java" rel="tag" id="a-post-tag">#java</a>
+            
+            <a href="/tags/index.html#kafka" rel="tag" id="a-post-tag">#kafka</a>
+            
+            <br>
+            
+            <br>
+
+            <p>This post will highlight some practical aspects of using kafka transactions. I will not dive deep into theory on how Kafka transactions are implemented. Instead, let’s discuss main “gotchas” someone could encounter when trying to use Kafka transactions in production first time.</p>
+
+<!--more-->
+
+<p>For detailed theoretical reference please refer to <a href="https://www.confluent.io/blog/transactions-apache-kafka/">this great article</a>. Full code mentioned in article can be found <a href="https://github.com/romanmarkunas/blog-kafka-transactions">here</a>.</p>
+
+<h2>Transactional applications with Kafka</h2>
+
+<p>Transactions in Kafka can be divided into 3 big groups: transactions when producing messages, transactions when consuming and exactly once processing, when both consuming and producing are done within one single transaction.</p>
+
+<p>In this post we will discuss only transactional producing.</p>
+
+<p>Just one more note before we start. In this article we will discuss only transaction semantics, but not delivery semantics. These may differ, especially when transaction also involves systems external to Kafka.</p>
+
+<h2>Usage example</h2>
+
+<p>Let’s say we have an application that allows users to trade chairs between each other. Users submit buy/sell orders and our app finds matching orders so that trades can occur. We also want to aggregate order data to figure out daily volumes, most traded instruments and other fancy business intelligence data. However we do not want to submit customer specific data to business intelligence pipeline because it is personal information and should not be read by unauthorized  personnel. One way to tackle that is to have a microservice that forwards orders to matcher queue and submits orders stripped of sensitive data into aggregator queue.</p>
+
+<h2>Successful scenario</h2>
+
+<p>To submit messages into different queues we use following code:</p>
+
+<div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kd">public</span> <span class="kt">void</span> <span class="nf">sendTransactionally</span><span class="o">(</span><span class="nc">List</span><span class="o">&lt;</span><span class="nc">TopicAndMessage</span><span class="o">&gt;</span> <span class="n">messages</span><span class="o">)</span> <span class="o">{</span>
+    <span class="n">producer</span><span class="o">.</span><span class="na">beginTransaction</span><span class="o">();</span>
+    
+    <span class="k">for</span> <span class="o">(</span><span class="nc">TopicAndMessage</span> <span class="n">topicAndMessage</span> <span class="o">:</span> <span class="n">messages</span><span class="o">)</span> <span class="o">{</span>
+        <span class="n">producer</span><span class="o">.</span><span class="na">send</span><span class="o">(</span><span class="k">new</span> <span class="nc">ProducerRecord</span><span class="o">&lt;&gt;(</span>
+                <span class="n">topicAndMessage</span><span class="o">.</span><span class="na">getTopic</span><span class="o">(),</span>
+                <span class="n">getTransactionNr</span><span class="o">(),</span>
+                <span class="n">topicAndMessage</span><span class="o">.</span><span class="na">getMessage</span><span class="o">()));</span>
+    <span class="o">}</span>
+
+    <span class="n">producer</span><span class="o">.</span><span class="na">commitTransaction</span><span class="o">();</span>
+<span class="o">}</span>
+</code></pre></div></div>
+
+<p>Now lets simulate successful write in our test scenario:</p>
+
+<div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kd">private</span> <span class="kd">static</span> <span class="kd">final</span> <span class="nc">List</span><span class="o">&lt;</span><span class="nc">TopicAndMessage</span><span class="o">&gt;</span> <span class="no">MESSAGES</span> <span class="o">=</span> <span class="n">asList</span><span class="o">(</span>
+            <span class="k">new</span> <span class="nf">TopicAndMessage</span><span class="o">(</span><span class="no">TRADE_MATCHER_TOPIC</span><span class="o">,</span> <span class="s">"id: 123, buy 42 chairs"</span><span class="o">),</span>
+            <span class="k">new</span> <span class="nf">TopicAndMessage</span><span class="o">(</span><span class="no">AGGREGATOR_TOPIC</span><span class="o">,</span> <span class="s">"buy 42 chairs"</span><span class="o">));</span>
+
+<span class="kd">private</span> <span class="nc">KafkaConsumer</span><span class="o">&lt;</span><span class="nc">Integer</span><span class="o">,</span> <span class="nc">String</span><span class="o">&gt;</span> <span class="n">consumer</span> <span class="o">=</span> <span class="o">...</span> <span class="c1">// create or get read_uncommitted consumer here</span>
+<span class="kd">private</span> <span class="nc">KafkaProducer</span><span class="o">&lt;</span><span class="nc">Integer</span><span class="o">,</span> <span class="nc">String</span><span class="o">&gt;</span> <span class="n">producer</span> <span class="o">=</span> <span class="o">...</span> <span class="c1">// create or get transactional producer here</span>
+
+<span class="nd">@Test</span>
+<span class="kd">public</span> <span class="kt">void</span> <span class="nf">noFailuresOccurred_readAllConsumer</span><span class="o">()</span> <span class="o">{</span>
+    <span class="nc">CrashableTransactionalKafkaProducer</span> <span class="n">crashableProducer</span>
+            <span class="o">=</span> <span class="k">new</span> <span class="nc">CrashableTransactionalKafkaProducer</span><span class="o">(</span><span class="n">producer</span><span class="o">);</span>
+    <span class="n">crashableProducer</span><span class="o">.</span><span class="na">sendTransactionally</span><span class="o">(</span><span class="no">MESSAGES</span><span class="o">);</span>
+    <span class="n">crashableProducer</span><span class="o">.</span><span class="na">sendTransactionally</span><span class="o">(</span><span class="no">MESSAGES</span><span class="o">);</span>
+
+    <span class="nc">ConsumerRecords</span><span class="o">&lt;</span><span class="nc">Integer</span><span class="o">,</span> <span class="nc">String</span><span class="o">&gt;</span> <span class="n">records</span> <span class="o">=</span> <span class="n">poll</span><span class="o">();</span>
+
+    <span class="n">assertEquals</span><span class="o">(</span><span class="mi">4</span><span class="o">,</span> <span class="n">records</span><span class="o">.</span><span class="na">count</span><span class="o">());</span>
+    <span class="n">print</span><span class="o">(</span><span class="n">records</span><span class="o">);</span>
+<span class="o">}</span>
+</code></pre></div></div>
+
+<p>Output:</p>
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>Topic: orders, offset: 0, transaction: 1, message:  id: 123, buy 42 chairs
+Topic: anonymous-orders, offset: 0, transaction: 1, message:  buy 42 chairs
+Topic: orders, offset: 2, transaction: 2, message:  id: 123, buy 42 chairs
+Topic: anonymous-orders, offset: 2, transaction: 2, message:  buy 42 chairs
+</code></pre></div></div>
+
+<p>Looks good! Very attentive reader will notice that 2nd transaction offsets start from 2 even though we submitted only 1 message before that. Also what does <em>read_uncommitted</em> mean in comment above? Let’s discuss this in a moment after checking out failure scenario.</p>
+
+<h2>Transactional KafkaProducer initialisation is stuck</h2>
+
+<p>If something is set incorrectly, most of the time Kafka will throw descriptive exception, for example:</p>
+
+<p><code class="highlighter-rouge">java.lang.IllegalStateException: Cannot use transactional methods without 
+enabling transactions by setting the transactional.id configuration property</code></p>
+
+<p>However one setting may cause indefinite blocking and “hanging”. This is broker setting <em>transaction.state.log.min.isr</em> (see also <em>transaction.state.log.replication.factor</em> when changing this). To keep track of which transactions were committed Kafka keeps internal topic called <em>__transaction_state</em>. This topic should be replicated for fault-tolerance as any other with Kafka. Now when you call <em>initTransactions()</em> on producer, this call will block until topic has all in-sync replicas acknowledgement.</p>
+
+<p>For example, if broker has only 2 machines online and <em>transaction.state.log.min.isr = 3</em>, <em>initTransactions()</em> will block until one more broker node gets online. If that 3rd node will go offline after producer has been initialized successfully, everything will keep working. However for startup it is necessary to have minimum broker node count online.</p>
+
+<h2>Failure scenario</h2>
+
+<p>Now following scenario:</p>
+
+<div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nd">@Test</span>
+<span class="kd">public</span> <span class="kt">void</span> <span class="nf">crashOnSecondTransaction_readAllConsumer</span><span class="o">()</span> <span class="o">{</span>
+    <span class="n">crashableProducer</span><span class="o">.</span><span class="na">sendTransactionally</span><span class="o">(</span><span class="no">MESSAGES</span><span class="o">);</span>
+    <span class="n">crashableProducer</span><span class="o">.</span><span class="na">setShouldCrash</span><span class="o">(</span><span class="kc">true</span><span class="o">);</span>
+    <span class="k">try</span> <span class="o">{</span>
+        <span class="n">crashableProducer</span><span class="o">.</span><span class="na">sendTransactionally</span><span class="o">(</span><span class="no">MESSAGES</span><span class="o">);</span>
+    <span class="o">}</span>
+    <span class="k">catch</span> <span class="o">(</span><span class="nc">ForceCrashException</span> <span class="n">e</span><span class="o">)</span> <span class="o">{</span>
+        <span class="nc">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="s">"Producer crashed!"</span><span class="o">);</span>
+    <span class="o">}</span>
+
+    <span class="nc">List</span><span class="o">&lt;</span><span class="nc">ConsumerRecord</span><span class="o">&lt;</span><span class="nc">Integer</span><span class="o">,</span> <span class="nc">String</span><span class="o">&gt;&gt;</span> <span class="n">records</span> <span class="o">=</span> <span class="n">poll</span><span class="o">();</span>
+
+    <span class="n">assertEquals</span><span class="o">(</span><span class="mi">3</span><span class="o">,</span> <span class="n">records</span><span class="o">.</span><span class="na">size</span><span class="o">());</span>
+    <span class="n">print</span><span class="o">(</span><span class="n">records</span><span class="o">);</span>
+<span class="o">}</span>
+</code></pre></div></div>
+
+<p>gives us:</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>Producer crashed!
+Topic: orders, offset: 0, transaction: 1, message:  id: 123, buy 42 chairs
+Topic: anonymous-orders, offset: 0, transaction: 1, message:  buy 42 chairs
+Topic: orders, offset: 2, transaction: 2, message:  id: 123, buy 42 chairs
+</code></pre></div></div>
+
+<p>Oops! Looks like transactions didn’t work. But they actually do. The problem here is that consumer was created with <em>isolation.level = read_uncommitted</em> setting, which is it’s default value. Every time producer commits a transaction it submits a commit marker to the log. If consumer’s <em>isolation.level</em> is set to <em>read_uncommitted</em> it just reads all messages it can. In case setting is <em>read_committed</em> consumer will wait until commit marker is submitted to decide what to do with preceding messages.</p>
+
+<p>This commit marker contains all necessary data for consumer to read from <em>__transactions_state</em> topic and decide, if message must be returned. In case when producer abort transaction commit marker will represents abort and will be ignore by consumer. In case producer dies, broker will ultimately expire transaction and abort marker itself. This is why if you submit <em>n</em> messages to topic the next batch will always start at <em>n+1</em> offset.</p>
+
+<p>Now if we set consumer’s <em>isolation.level = read_committed</em>, we will get:</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>Producer crashed!
+Topic: orders, offset: 4, transaction: 1, message:  id: 123, buy 42 chairs
+Topic: anonymous-orders, offset: 2, transaction: 1, message:  buy 42 chairs
+</code></pre></div></div>
+
+<p>So important note here is that transactional producing is dependent on the readers. Therefore when building pipelines with Kafka, every node in chain settings must be carefully considered, because one error may cause change in all pipeline delivery semantics!</p>
+
+<h2>Producer fencing and expiration</h2>
+
+<p>To protect cluster from intermittent connection errors Kafka uses epochs tied to producer’s transaction ID. Every time producer calls <em>initTransactions()</em>, cluster will assign it an <em>epoch = previous_epoch + 1</em>. This means that if you start producer with transaction id and cluster has active producer with same id, the latter one will be disconnected (fenced in Kafka terms) and throw an exception next time it tries to send message:</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>org.apache.kafka.common.errors.ProducerFencedException: Producer attempted an 
+operation with an old epoch. Either there is a newer producer with the same 
+transactionalId, or the producer's transaction has been expired by the broker.
+</code></pre></div></div>
+
+<p>Sometimes producer throws another exception, with ProducerFencedException as cause.</p>
+
+<p>But this exception may occur even without connectivity errors. Internally broker keeps a map of producer IDs to transaction IDs to maintain aforementioned fencing functionality. However broker will expire these entries based on <em>transactional.id.expiration.ms</em> setting which is by default 604800000 ms or 1 week.</p>
+
+<p>This means that if your producer sends messages slower than once a week it will be fenced (crash) every time it tries to send after that prolonged period. One could put that value to Integer.MAX, but that still will be around 24 days. In case of very rare events, this should be solved differently, e.g. by having separate producer ping topic, that producer will periodically send messages to.</p>
+
+<h2>Instead of conclusion</h2>
+
+<p>That’s it for Kafka producers! Hopefully this will help you to understand, setup Kafka transactions and successfully keep them producing. For more implementation details how Kafka transactions work, I recommend blog mentioned in this post’s intro and this <a href="https://cwiki.apache.org/confluence/display/KAFKA/KIP-98+-+Exactly+Once+Delivery+and+Transactional+Messaging#KIP-98-ExactlyOnceDeliveryandTransactionalMessaging-2.GettingaproducerId--theInitPidRequest">Kafka KIP</a>.</p>
+
+<p>Stay tuned for article on transactional consuming!</p>
+        </div><!-- .post-content -->
+        <footer class="post-footer inner-small outer">
+            <div class="post-share">
+                <span>Share:</span>
+                <a class="button button-icon button-fill-horz"
+                    href="https://twitter.com/intent/tweet?text=Kafka%20transactions%20in%20practice%201:%20Producer&amp;url=https://romanmarkunas.github.io/messaging/2018/10/01/0006-messaging-kafka-in-practice-1-producer/"
+                    target="_blank" rel="noopener"><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M23.954 4.569a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.691 8.094 4.066 6.13 1.64 3.161a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.061a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.937 4.937 0 004.604 3.417 9.868 9.868 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.054 0 13.999-7.496 13.999-13.986 0-.209 0-.42-.015-.63a9.936 9.936 0 002.46-2.548l-.047-.02z"/></svg><span
+                        class="screen-reader-text">Share on Twitter</span></a>
+                <a class="button button-icon button-fill-horz"
+                    href="https://www.facebook.com/sharer/sharer.php?u=https://romanmarkunas.github.io/messaging/2018/10/01/0006-messaging-kafka-in-practice-1-producer/&amp;t=Kafka%20transactions%20in%20practice%201:%20Producer"
+                    target="_blank" rel="noopener"><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M23.998 12c0-6.628-5.372-12-11.999-12C5.372 0 0 5.372 0 12c0 5.988 4.388 10.952 10.124 11.852v-8.384H7.078v-3.469h3.046V9.356c0-3.008 1.792-4.669 4.532-4.669 1.313 0 2.686.234 2.686.234v2.953H15.83c-1.49 0-1.955.925-1.955 1.874V12h3.328l-.532 3.469h-2.796v8.384c5.736-.9 10.124-5.864 10.124-11.853z"/></svg><span
+                        class="screen-reader-text">Share on Facebook</span></a>
+            </div>
+<!--            -->
+<!--            <div class="post-tags">-->
+<!--                <span>Tags:</span>-->
+<!--                <a href="/tags/index.html#messaging" rel="tag">messaging</a><a href="/tags/index.html#java" rel="tag">java</a><a href="/tags/index.html#kafka" rel="tag">kafka</a>-->
+<!--            </div>-->
+<!--            -->
+        </footer><!-- .post-footer -->
+    </article><!-- .post -->
+    <nav class="post-navigation">
+        <h2 class="screen-reader-text">Read Next</h2>
+        
+        <div class="nav-previous">
+            <div class="nav-inside inner-small outer">
+                
+                <div class="nav-before">Previous</div>
+                <h3 class="nav-title"><a href="/core-java/2018/10/01/0005-core-java-random/">Notes on Java Random</a>
+                </h3>
+                <div class="nav-date">October 1, 2018</div>
+            </div><!-- .nav-inside -->
+        </div><!-- .nav-previous -->
+        
+        
+        <div class="nav-next">
+            <div class="nav-inside inner-small outer">
+                
+                <div class="nav-before">Next</div>
+                <h3 class="nav-title"><a href="/build/2018/11/13/0007-build-gradle-fat-jars/">Creating fat JARs with gradle</a></h3>
+                <div class="nav-date">November 13, 2018</div>
+            </div><!-- .nav-inside -->
+        </div><!-- .nav-next -->
+        
+    </nav><!-- .post-navigation -->
+
+    <div class="comments-area">
+        <div class="inner-small outer">
+<!--            <h2 class="comments-title line-accent">Comments</h2>-->
+            <div id="hyvor-talk-view"></div>
+            <script type="text/javascript">
+                var HYVOR_TALK_WEBSITE = 708; // DO NOT CHANGE THIS
+                var HYVOR_TALK_CONFIG = {
+                    url: 'https://romanmarkunas.github.io/messaging/2018/10/01/0006-messaging-kafka-in-practice-1-producer/',
+                    id: '/messaging/2018/10/01/--0006---messaging---kafka-in-practice-1-producer'
+                };
+            </script>
+            <script async type="text/javascript" src="//talk.hyvor.com/web-api/embed"></script>
+
+        </div><!-- .inner-small -->
+    </div><!-- .comments-area -->
+
+</div><!-- .primary -->
+
+<aside class="sidebar">
+
+    <section class="widget widget-text">
+        <h2 class="widget-title line-accent">About</h2>
+        <p style="text-align:justify;">
+            I am Roma, a Java developer focusing on high-throughput
+            systems. This blog is a collection of tech, performance and
+            design tips, broadly covering my experience out in the field.
+        </p>
+    </section><!-- .widget-text -->
+
+    
+
+    
+
+    <section class="widget widget-recent-posts">
+        <h2 class="widget-title line-accent">Latest Posts</h2>
+        <ul class="recent-posts">
+            
+            <li class="recent-item"><a href="/microservices/2018/11/15/0008-microservices-dropwizard-101/">Getting started with Dropwizard</a> <span>November 15, 2018</span></li>
+            
+            <li class="recent-item"><a href="/build/2018/11/13/0007-build-gradle-fat-jars/">Creating fat JARs with gradle</a> <span>November 13, 2018</span></li>
+            
+            <li class="recent-item"><a href="/messaging/2018/10/01/0006-messaging-kafka-in-practice-1-producer/">Kafka transactions in practice 1: Producer</a> <span>October 1, 2018</span></li>
+            
+            <li class="recent-item"><a href="/core-java/2018/10/01/0005-core-java-random/">Notes on Java Random</a> <span>October 1, 2018</span></li>
+            
+            <li class="recent-item"><a href="/uncategorized/2018/10/01/0004-uncategorized-monty-hall/">Monty-Hall problem</a> <span>October 1, 2018</span></li>
+            
+        </ul><!-- .recent-posts -->
+    </section><!-- .widget-recent-posts -->
+
+    <!--Create a sorted array of tags-->
+    
+    
+    <section class="widget widget-tags">
+        <h2 class="widget-title line-accent">Tags</h2>
+        <div class="tagcloud">
+            <a href="/tags/#build">build</a><a href="/tags/#concurrency">concurrency</a><a href="/tags/#core+java">core java</a><a href="/tags/#coroutines">coroutines</a><a href="/tags/#dropwizard">dropwizard</a><a href="/tags/#gradle">gradle</a><a href="/tags/#java">java</a><a href="/tags/#kafka">kafka</a><a href="/tags/#low+latency">low latency</a><a href="/tags/#messaging">messaging</a><a href="/tags/#microservices">microservices</a><a href="/tags/#multithreading">multithreading</a><a href="/tags/#non-blocking+IO">non-blocking IO</a><a href="/tags/#quasar">quasar</a>
+        </div><!-- .tagcloud -->
+    </section><!-- .widget -->
+
+</aside><!-- .sidebar -->
+
+
+                </main><!-- .site-main -->
+            </div><!-- .inner -->
+        </div><!-- .site-content -->
+        <footer class="site-footer outer">
+    <div class="inner">
+        <div class="site-info">
+            <a href="#top" id="js-top-link" class="top-link button button-icon button-fill-horz"><span class="screen-reader-text">Back to the top</span><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M3.44 18.359l8.56-8.541 8.56 8.541 2.63-2.63-11.189-11.189-11.189 11.189z"></path></svg></a>
+        </div><!-- .site-info -->
+    </div><!-- .inner -->
+</footer><!-- .site-footer -->
+
+    </div><!-- .site -->
+    
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-117056147-2"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-117056147-2');
+</script>
+
+    
+    <script src="/js/scripts.js"></script>
+</body>
+</html>
