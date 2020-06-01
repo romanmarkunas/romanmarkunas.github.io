@@ -3,10 +3,10 @@
     <channel>
         <title>Roman Markunas (Romans Markuns) blog</title>
         <description>Java, performance and design tips by Roman Markunas (Romans Markuns)</description>
-        <link>https://romanmarkunas.github.io/</link>
-        <atom:link href="https://romanmarkunas.github.io/feed.xml" rel="self" type="application/rss+xml"/>
-        <pubDate>Mon, 25 May 2020 19:00:12 +0100</pubDate>
-        <lastBuildDate>Mon, 25 May 2020 19:00:12 +0100</lastBuildDate>
+        <link>https://romanmarkunas.com/</link>
+        <atom:link href="https://romanmarkunas.com/feed.xml" rel="self" type="application/rss+xml"/>
+        <pubDate>Mon, 01 Jun 2020 14:43:15 +0100</pubDate>
+        <lastBuildDate>Mon, 01 Jun 2020 14:43:15 +0100</lastBuildDate>
         <generator>Jekyll v4.0.1</generator>
         
             <item>
@@ -180,15 +180,15 @@
 
 &lt;h2&gt;Packaging&lt;/h2&gt;
 
-&lt;p&gt;As mentioned before, Dropwizard promotes single JAR packaging. To make a single JAR we need to instruct build tool to put all depended upon classes into JAR file. I have covered this in &lt;a href=&quot;https://romanmarkunas.github.iocreating-fat-jars-with-gradle/&quot;&gt;separate tutorial before&lt;/a&gt;.&lt;/p&gt;
+&lt;p&gt;As mentioned before, Dropwizard promotes single JAR packaging. To make a single JAR we need to instruct build tool to put all depended upon classes into JAR file. I have covered this in &lt;a href=&quot;https://romanmarkunas.comcreating-fat-jars-with-gradle/&quot;&gt;separate tutorial before&lt;/a&gt;.&lt;/p&gt;
 
 &lt;h2&gt;Instead of conclusion&lt;/h2&gt;
 
 &lt;p&gt;That’s it for this introductory article. Hopefully after this reader will have vague ide of what Dropwizard is, how it may be used and roughly how it’s components are interacting to bring that.&lt;/p&gt;
 </description>
                 <pubDate>Thu, 15 Nov 2018 00:00:00 +0000</pubDate>
-                <link>https://romanmarkunas.github.io/microservices/2018/11/15/0008-microservices-dropwizard-101/</link>
-                <guid isPermaLink="true">https://romanmarkunas.github.io/microservices/2018/11/15/0008-microservices-dropwizard-101/</guid>
+                <link>https://romanmarkunas.com/microservices/2018/11/15/0008-microservices-dropwizard-101/</link>
+                <guid isPermaLink="true">https://romanmarkunas.com/microservices/2018/11/15/0008-microservices-dropwizard-101/</guid>
                 
                 <category>microservices</category>
                 
@@ -291,8 +291,8 @@
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
 </description>
                 <pubDate>Tue, 13 Nov 2018 00:00:00 +0000</pubDate>
-                <link>https://romanmarkunas.github.io/build/2018/11/13/0007-build-gradle-fat-jars/</link>
-                <guid isPermaLink="true">https://romanmarkunas.github.io/build/2018/11/13/0007-build-gradle-fat-jars/</guid>
+                <link>https://romanmarkunas.com/build/2018/11/13/0007-build-gradle-fat-jars/</link>
+                <guid isPermaLink="true">https://romanmarkunas.com/build/2018/11/13/0007-build-gradle-fat-jars/</guid>
                 
                 <category>build</category>
                 
@@ -448,8 +448,8 @@ transactionalId, or the producer's transaction has been expired by the broker.
 &lt;p&gt;Stay tuned for article on transactional consuming!&lt;/p&gt;
 </description>
                 <pubDate>Mon, 01 Oct 2018 00:00:00 +0100</pubDate>
-                <link>https://romanmarkunas.github.io/messaging/2018/10/01/0006-messaging-kafka-in-practice-1-producer/</link>
-                <guid isPermaLink="true">https://romanmarkunas.github.io/messaging/2018/10/01/0006-messaging-kafka-in-practice-1-producer/</guid>
+                <link>https://romanmarkunas.com/messaging/2018/10/01/0006-messaging-kafka-in-practice-1-producer/</link>
+                <guid isPermaLink="true">https://romanmarkunas.com/messaging/2018/10/01/0006-messaging-kafka-in-practice-1-producer/</guid>
                 
                 <category>messaging</category>
                 
@@ -465,7 +465,7 @@ transactionalId, or the producer's transaction has been expired by the broker.
 
 &lt;!--more--&gt;
 
-&lt;p&gt;If you want to read about paradox itself click &lt;a href=&quot;https://romanmarkunas.github.io/monty-hall-problem/&quot;&gt;here&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;If you want to read about paradox itself click &lt;a href=&quot;https://romanmarkunas.com/monty-hall-problem/&quot;&gt;here&lt;/a&gt;&lt;/p&gt;
 
 &lt;h2&gt;java.util.Random&lt;/h2&gt;
 
@@ -542,8 +542,8 @@ These devices generate randomness based on user/OS events, e.g. interrupts (IO e
 &lt;p&gt;Hopefully this sheds some light on how Java random number generators work under the hood. Thanks for reading and stay safe!&lt;/p&gt;
 </description>
                 <pubDate>Mon, 01 Oct 2018 00:00:00 +0100</pubDate>
-                <link>https://romanmarkunas.github.io/core-java/2018/10/01/0005-core-java-random/</link>
-                <guid isPermaLink="true">https://romanmarkunas.github.io/core-java/2018/10/01/0005-core-java-random/</guid>
+                <link>https://romanmarkunas.com/core-java/2018/10/01/0005-core-java-random/</link>
+                <guid isPermaLink="true">https://romanmarkunas.com/core-java/2018/10/01/0005-core-java-random/</guid>
                 
                 <category>core java</category>
                 
@@ -564,8 +564,8 @@ These devices generate randomness based on user/OS events, e.g. interrupts (IO e
 &lt;p&gt;Now I though this result is awkward, because when one door opened you have 2 doors to choose, which is essentially 50/50 chance. But the model (which can be found &lt;a href=&quot;https://github.com/romanmarkunas/blog-monty-hall&quot;&gt;here&lt;/a&gt; proves this is incorrect. So Monty-Hall problem suggests that probabilities have temporal linking as well, meaning probability depends on the moment when decision is made as well as your odds.&lt;/p&gt;
 </description>
                 <pubDate>Mon, 01 Oct 2018 00:00:00 +0100</pubDate>
-                <link>https://romanmarkunas.github.io/uncategorized/2018/10/01/0004-uncategorized-monty-hall/</link>
-                <guid isPermaLink="true">https://romanmarkunas.github.io/uncategorized/2018/10/01/0004-uncategorized-monty-hall/</guid>
+                <link>https://romanmarkunas.com/uncategorized/2018/10/01/0004-uncategorized-monty-hall/</link>
+                <guid isPermaLink="true">https://romanmarkunas.com/uncategorized/2018/10/01/0004-uncategorized-monty-hall/</guid>
                 
             </item>
         
@@ -696,8 +696,8 @@ Avg latency    - 11.018564
 &lt;p&gt;Coming soon! Follow-up post where same tests are performed with Apache Artemis (former ActiveMQ).&lt;/p&gt;
 </description>
                 <pubDate>Sat, 22 Sep 2018 00:00:00 +0100</pubDate>
-                <link>https://romanmarkunas.github.io/messaging/2018/09/22/0003-messaging-messaging-system-latencies-1-kafka/</link>
-                <guid isPermaLink="true">https://romanmarkunas.github.io/messaging/2018/09/22/0003-messaging-messaging-system-latencies-1-kafka/</guid>
+                <link>https://romanmarkunas.com/messaging/2018/09/22/0003-messaging-messaging-system-latencies-1-kafka/</link>
+                <guid isPermaLink="true">https://romanmarkunas.com/messaging/2018/09/22/0003-messaging-messaging-system-latencies-1-kafka/</guid>
                 
                 <category>kafka</category>
                 
@@ -897,8 +897,8 @@ Fiber execution took 1661 ms
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
 </description>
                 <pubDate>Mon, 02 Apr 2018 00:00:00 +0100</pubDate>
-                <link>https://romanmarkunas.github.io/concurrency/2018/04/02/0002-concurrency-introduction-to-java-coroutines/</link>
-                <guid isPermaLink="true">https://romanmarkunas.github.io/concurrency/2018/04/02/0002-concurrency-introduction-to-java-coroutines/</guid>
+                <link>https://romanmarkunas.com/concurrency/2018/04/02/0002-concurrency-introduction-to-java-coroutines/</link>
+                <guid isPermaLink="true">https://romanmarkunas.com/concurrency/2018/04/02/0002-concurrency-introduction-to-java-coroutines/</guid>
                 
                 <category>coroutines</category>
                 
@@ -919,8 +919,8 @@ Fiber execution took 1661 ms
                 <description>&lt;p&gt;Well, I’ve finally made it! Every big boy must have a blog they say, and now I have one as well. Let’s see how it goes…&lt;/p&gt;
 </description>
                 <pubDate>Sat, 03 Feb 2018 00:00:00 +0000</pubDate>
-                <link>https://romanmarkunas.github.io/uncategorized/2018/02/03/0001-uncategorized-hello-world/</link>
-                <guid isPermaLink="true">https://romanmarkunas.github.io/uncategorized/2018/02/03/0001-uncategorized-hello-world/</guid>
+                <link>https://romanmarkunas.com/uncategorized/2018/02/03/0001-uncategorized-hello-world/</link>
+                <guid isPermaLink="true">https://romanmarkunas.com/uncategorized/2018/02/03/0001-uncategorized-hello-world/</guid>
                 
             </item>
         
