@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Jackson mix-ins</title> 
+    <meta name="description" content="Learn how to use Jackson mix-in feature to improve your design">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link rel="shortcut icon" href="/favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:400,400i,700,700i&display=swap" />
+    <link rel="stylesheet" href="/css/main.css" />
+    <link rel="canonical" href="https://romanmarkunas.com/protocols/2020/06/03/0009-protocols-jackson-mixins/">
+    <link rel="alternate" type="application/rss+xml" title="Roman Markunas (Romans Markuns) blog Feed" href="https://romanmarkunas.com/feed.xml">
+    
+    <script data-ad-client="ca-pub-9488600968816185" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+    
+</head>
+<body onload="transformSyntaxHiglightsBecausePygmentsJavaLexerIsRubbish();">
+    <div class="site">
+        <nav id="top" class="site-nav outer" aria-label="Main Menu">
+    <div class="inner">
+        <div class="site-nav-inside">
+
+            <button id="menu-show" class="js-menu-toggle"><span class="icon icon-menu"
+                    aria-hidden="true"></span>Menu</button>
+
+            <div class="menu-panel">
+                <div class="menu-panel-scrollable">
+                    <div class="menu-panel-top">
+                        <button id="menu-hide" class="js-menu-toggle button button-icon button-fill-horz"><span class="icon icon-close" aria-hidden="true"></span><span class="screen-reader-text">Close</span></button>
+                    </div>
+                    <ul class="menu">
+                        
+                        
+                        
+                        <li class="menu-item ">
+                            <a href="/">Home</a>
+                        </li>
+                        
+                        
+                        
+                        <li class="menu-item ">
+                            <a href="/tags/">Archive</a>
+                        </li>
+                        
+                    </ul>
+                </div>
+            </div><!-- .menu-panel -->
+
+            <ul class="actions">
+                <li>
+                    <a class="button button-icon button-fill-horz"
+                       href="https://www.linkedin.com/in/romansmarkuns"><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg><span class="screen-reader-text">LinkedIn</span></a>
+                </li>
+                <li>
+                    <a class="button button-icon button-fill-horz"
+                       href="https://github.com/romanmarkunas"><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg><span class="screen-reader-text">GitHub</span></a>
+                </li>
+                <li>
+                    <a class="button button-icon button-fill-horz"
+                        href="/feed.xml"><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M19.199 24C19.199 13.467 10.533 4.8 0 4.8V0c13.165 0 24 10.835 24 24h-4.801zM3.291 17.415c1.814 0 3.293 1.479 3.293 3.295 0 1.813-1.485 3.29-3.301 3.29C1.47 24 0 22.526 0 20.71s1.475-3.294 3.291-3.295zM15.909 24h-4.665c0-6.169-5.075-11.245-11.244-11.245V8.09c8.727 0 15.909 7.184 15.909 15.91z"/></svg><span class="screen-reader-text">Subscribe</span></a>
+                </li>
+            </ul><!-- .actions -->
+
+        </div><!-- .site-nav-inside -->
+    </div><!-- .inner -->
+</nav><!-- .site-nav -->
+
+        <header class="site-alto-header outer">
+    <div class="inner">
+        <div class="site-header-inside">
+
+<!--            -->
+
+        </div><!-- .site-header-inside -->
+    </div><!-- .inner -->
+</header><!-- .site-header -->
+
+        <div class="site-content outer">
+            <div class="inner">
+                <main class="site-main">
+                    <div class="primary">
+    <article class="post post-full">
+        <header class="post-header">
+            <div class="post-header-wrap">
+                <h1 class="post-title outer">Jackson mix-ins</h1>
+            </div>
+        </header><!-- .post-header -->
+        <div class="post-content inner-small outer">
+            <time class="published" datetime="">2020-06-03</time><span class="reading-time" title="Estimated read time">
+  
+  
+    	&mdash; 7 min read
+  
+</span>
+
+
+            <br>
+
+            
+            
+            <a href="/tags/index.html#protocols" rel="tag" id="a-post-tag">#protocols</a>
+            
+            <a href="/tags/index.html#java" rel="tag" id="a-post-tag">#java</a>
+            
+            <a href="/tags/index.html#jackson" rel="tag" id="a-post-tag">#jackson</a>
+            
+            <a href="/tags/index.html#messaging" rel="tag" id="a-post-tag">#messaging</a>
+            
+            <a href="/tags/index.html#design" rel="tag" id="a-post-tag">#design</a>
+            
+            <br>
+            
+            <br>
+
+            <p>Jackson mix-ins are crucial to clearly separate application layers according to <a href="https://jeffreypalermo.com/2008/07/the-onion-architecture-part-1/">the onion architecture</a> (popularised further by 
+<a href="https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html">Rob Martin</a>), without code duplication and boilerplate. According to onion architecture  marshalling would sit in infrastructure level and domain objects should not be dependent on messaging infrastructure.</p>
+
+<p>Another important use case would be if you do not control source code for 
+serialised objects, but rather import them as library. In this case it is 
+impossible to annotate imported class.</p>
+
+<!--more-->
+
+<p>Source code of examples can be found <a href="https://github.com/romanmarkunas-com/0009-jackson-mixins">here</a>.</p>
+
+<h2>Example that would just work™</h2>
+
+<p>Let’s say our library/domain class looks like this:</p>
+<div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kd">public</span> <span class="kd">class</span> <span class="nc">JacksonFriendlyZoo</span> <span class="o">{</span>
+
+    <span class="kd">private</span> <span class="kt">int</span> <span class="n">giraffeCount</span><span class="o">;</span>
+    <span class="kd">private</span> <span class="kt">boolean</span> <span class="n">open</span><span class="o">;</span>
+
+
+    <span class="kd">public</span> <span class="nf">JacksonFriendlyZoo</span><span class="o">()</span> <span class="o">{</span>
+        <span class="c1">// for deserialization, don't use me!</span>
+    <span class="o">}</span>
+
+    <span class="kd">public</span> <span class="nf">JacksonFriendlyZoo</span><span class="o">(</span><span class="kt">int</span> <span class="n">giraffeCount</span><span class="o">,</span> <span class="kt">boolean</span> <span class="n">open</span><span class="o">)</span> <span class="o">{</span>
+        <span class="k">this</span><span class="o">.</span><span class="na">giraffeCount</span> <span class="o">=</span> <span class="n">giraffeCount</span><span class="o">;</span>
+        <span class="k">this</span><span class="o">.</span><span class="na">open</span> <span class="o">=</span> <span class="n">open</span><span class="o">;</span>
+    <span class="o">}</span>
+
+
+    <span class="kd">public</span> <span class="kt">int</span> <span class="nf">getGiraffeCount</span><span class="o">()</span> <span class="o">{</span>
+        <span class="k">return</span> <span class="n">giraffeCount</span><span class="o">;</span>
+    <span class="o">}</span>
+
+    <span class="kd">public</span> <span class="kt">boolean</span> <span class="nf">isOpen</span><span class="o">()</span> <span class="o">{</span>
+        <span class="k">return</span> <span class="n">open</span><span class="o">;</span>
+    <span class="o">}</span>
+<span class="o">}</span>
+</code></pre></div></div>
+
+<p>Then both (de-)serialization would just work with Jackson. However we should not alter domain object to make infrastructure work. So let’s see how to work around common cases below.</p>
+
+<h2>Immutable objects</h2>
+
+<p>Let’s start by removing no arg constructor because it leaks deserialization concern into domain code:</p>
+<div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kd">public</span> <span class="kd">class</span> <span class="nc">ImmutableZoo</span> <span class="o">{</span>
+
+    <span class="kd">private</span> <span class="kd">final</span> <span class="kt">int</span> <span class="n">giraffeCount</span><span class="o">;</span>
+    <span class="kd">private</span> <span class="kd">final</span> <span class="kt">boolean</span> <span class="n">open</span><span class="o">;</span>
+
+
+    <span class="kd">public</span> <span class="nf">ImmutableZoo</span><span class="o">(</span><span class="kt">int</span> <span class="n">giraffeCount</span><span class="o">,</span> <span class="kt">boolean</span> <span class="n">open</span><span class="o">)</span> <span class="o">{</span>
+        <span class="k">this</span><span class="o">.</span><span class="na">giraffeCount</span> <span class="o">=</span> <span class="n">giraffeCount</span><span class="o">;</span>
+        <span class="k">this</span><span class="o">.</span><span class="na">open</span> <span class="o">=</span> <span class="n">open</span><span class="o">;</span>
+    <span class="o">}</span>
+
+
+    <span class="kd">public</span> <span class="kt">int</span> <span class="nf">getGiraffeCount</span><span class="o">()</span> <span class="o">{</span>
+        <span class="k">return</span> <span class="n">giraffeCount</span><span class="o">;</span>
+    <span class="o">}</span>
+
+    <span class="kd">public</span> <span class="kt">boolean</span> <span class="nf">isOpen</span><span class="o">()</span> <span class="o">{</span>
+        <span class="k">return</span> <span class="n">open</span><span class="o">;</span>
+    <span class="o">}</span>
+<span class="o">}</span>
+</code></pre></div></div>
+
+<p>This serializes well, but attempting to deserialize this would cause:</p>
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>com.fasterxml.jackson.databind.exc.InvalidDefinitionException: Cannot construct instance of `com.romanmarkunas.blog.jackson.ImmutableZoo` (no Creators, like default constructor, exist): cannot deserialize from Object value (no delegate- or property-based Creator)
+ at [Source: (String)"{"giraffeCount":5,"open":true}"; line: 1, column: 2]
+</code></pre></div></div>
+
+<p>Let’s add a creator constructor using mix-in:</p>
+<div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kd">public</span> <span class="kd">abstract</span> <span class="kd">class</span> <span class="nc">ImmutableZooMixIn</span> <span class="o">{</span>
+
+    <span class="nd">@JsonCreator</span>
+    <span class="kd">public</span> <span class="nf">ImmutableZooMixIn</span><span class="o">(</span>
+            <span class="nd">@JsonProperty</span><span class="o">(</span><span class="s">"giraffeCount"</span><span class="o">)</span> <span class="kt">int</span> <span class="n">giraffeCount</span><span class="o">,</span>
+            <span class="nd">@JsonProperty</span><span class="o">(</span><span class="s">"open"</span><span class="o">)</span> <span class="kt">boolean</span> <span class="n">open</span>
+    <span class="o">)</span> <span class="o">{}</span>
+<span class="o">}</span>
+</code></pre></div></div>
+
+<p>And configure object mapper like so:</p>
+<div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nd">@Test</span>
+<span class="kt">void</span> <span class="nf">canDeserializeWithoutDefaultConstructorButWithMixIn</span><span class="o">()</span> <span class="o">{</span>
+    <span class="nc">ObjectMapper</span> <span class="n">objectMapper</span> 
+            <span class="o">=</span> <span class="k">new</span> <span class="nc">ObjectMapper</span><span class="o">()</span>
+            <span class="o">.</span><span class="na">addMixIn</span><span class="o">(</span><span class="nc">ImmutableZoo</span><span class="o">.</span><span class="na">class</span><span class="o">,</span> <span class="nc">ImmutableZooMixIn</span><span class="o">.</span><span class="na">class</span><span class="o">);</span>
+    <span class="nc">String</span> <span class="n">jsonIn</span> <span class="o">=</span> <span class="s">"{\"giraffeCount\":5,\"open\":true}"</span><span class="o">;</span>
+
+    <span class="nc">ImmutableZoo</span> <span class="n">zoo</span> <span class="o">=</span> <span class="n">objectMapper</span><span class="o">.</span><span class="na">readValue</span><span class="o">(</span><span class="n">jsonIn</span><span class="o">,</span> <span class="nc">ImmutableZoo</span><span class="o">.</span><span class="na">class</span><span class="o">);</span>
+<span class="o">}</span>
+</code></pre></div></div>
+
+<h2>Improving code navigatability</h2>
+
+<p>Now you, like me, might be tempted to use creator factory method to leverage IDE code navigation features and have easier time to find out all places where object might be constructed, like so:</p>
+<div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kd">public</span> <span class="kd">abstract</span> <span class="kd">class</span> <span class="nc">ImmutableZooMixInFail</span> <span class="o">{</span>
+
+    <span class="nd">@JsonCreator</span>
+    <span class="kd">public</span> <span class="kd">static</span> <span class="nc">ImmutableZoo</span> <span class="nf">create</span><span class="o">(</span>
+            <span class="nd">@JsonProperty</span><span class="o">(</span><span class="s">"giraffeCount"</span><span class="o">)</span> <span class="kt">int</span> <span class="n">giraffeCount</span><span class="o">,</span>
+            <span class="nd">@JsonProperty</span><span class="o">(</span><span class="s">"open"</span><span class="o">)</span> <span class="kt">boolean</span> <span class="n">open</span>
+    <span class="o">)</span> <span class="o">{</span>
+        <span class="k">return</span> <span class="k">new</span> <span class="nf">ImmutableZoo</span><span class="o">(</span><span class="n">giraffeCount</span><span class="o">,</span> <span class="n">open</span><span class="o">);</span>
+    <span class="o">}</span>
+<span class="o">}</span>
+</code></pre></div></div>
+
+<p>however this would still fail with:</p>
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>com.fasterxml.jackson.databind.exc.InvalidDefinitionException: Cannot construct instance of `com.romanmarkunas.blog.jackson.ImmutableZoo` (no Creators, like default constructor, exist)... blah, blah
+</code></pre></div></div>
+
+<blockquote>
+  <p>This uncovers one important insight on how mix-ins work in Jackson - it does not look at mix-in class to find creator, but rather it sees the target class with added <strong>corresponding</strong> annotations from mix-in class. In other words, if target class does not have static factory method with exactly same signature as mix-in’s annotated static factory, the <strong>mix-in would not have any effect</strong>.</p>
+</blockquote>
+
+<p>That means, if we don’t have factory on domain/library object, we can make code more navigatable only for non-final classes:</p>
+<div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kd">public</span> <span class="kd">abstract</span> <span class="kd">class</span> <span class="nc">ImmutableZooMixInNavigatable</span> <span class="kd">extends</span> <span class="nc">ImmutableZoo</span> <span class="o">{</span>
+
+    <span class="nd">@JsonCreator</span>
+    <span class="kd">public</span> <span class="nf">ImmutableZooMixInNavigatable</span><span class="o">(</span>
+            <span class="nd">@JsonProperty</span><span class="o">(</span><span class="s">"giraffeCount"</span><span class="o">)</span> <span class="kt">int</span> <span class="n">giraffeCount</span><span class="o">,</span>
+            <span class="nd">@JsonProperty</span><span class="o">(</span><span class="s">"open"</span><span class="o">)</span> <span class="kt">boolean</span> <span class="n">open</span>
+    <span class="o">)</span> <span class="o">{</span>
+        <span class="kd">super</span><span class="o">(</span><span class="n">giraffeCount</span><span class="o">,</span> <span class="n">open</span><span class="o">);</span>
+    <span class="o">}</span>
+<span class="o">}</span>
+</code></pre></div></div>
+
+<p>In any case the link between target and mix-in classes can be discovered when checking class usage and finding ObjectMapper configuration.</p>
+
+<h2>Methods not following Java property convention</h2>
+
+<blockquote>
+  <p>By default Jackson looks for methods in the form of Java property to serialize objects.</p>
+</blockquote>
+
+<p>For example, to serialize field <code class="highlighter-rouge">giraffeCount</code> you must have method  <code class="highlighter-rouge">getGiraffeCount()</code>. So if our domain/library class looks like this:</p>
+<div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kd">public</span> <span class="kd">class</span> <span class="nc">NotFollowingJavaPropertyConventionZoo</span> <span class="o">{</span>
+
+    <span class="kd">private</span> <span class="kd">final</span> <span class="kt">int</span> <span class="n">giraffeCount</span><span class="o">;</span>
+    <span class="kd">private</span> <span class="kd">final</span> <span class="kt">boolean</span> <span class="n">open</span><span class="o">;</span>
+
+
+    <span class="kd">public</span> <span class="nf">NotFollowingJavaPropertyConventionZoo</span><span class="o">(</span>
+            <span class="kt">int</span> <span class="n">giraffeCount</span><span class="o">,</span>
+            <span class="kt">boolean</span> <span class="n">open</span>
+    <span class="o">)</span> <span class="o">{</span>
+        <span class="k">this</span><span class="o">.</span><span class="na">giraffeCount</span> <span class="o">=</span> <span class="n">giraffeCount</span><span class="o">;</span>
+        <span class="k">this</span><span class="o">.</span><span class="na">open</span> <span class="o">=</span> <span class="n">open</span><span class="o">;</span>
+    <span class="o">}</span>
+
+
+    <span class="kd">public</span> <span class="kt">int</span> <span class="nf">giraffeCount</span><span class="o">()</span> <span class="o">{</span>
+        <span class="k">return</span> <span class="n">giraffeCount</span><span class="o">;</span>
+    <span class="o">}</span>
+
+    <span class="kd">public</span> <span class="kt">boolean</span> <span class="nf">open</span><span class="o">()</span> <span class="o">{</span>
+        <span class="k">return</span> <span class="n">open</span><span class="o">;</span>
+    <span class="o">}</span>
+<span class="o">}</span>
+</code></pre></div></div>
+
+<p>it will fail to serialize with:</p>
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>com.fasterxml.jackson.databind.exc.InvalidDefinitionException: No serializer found for class com.romanmarkunas.blog.jackson.NotFollowingJavaPropertyConventionZoo and no properties discovered to create BeanSerializer (to avoid exception, disable SerializationFeature.FAIL_ON_EMPTY_BEANS)
+</code></pre></div></div>
+
+<p>This could be solved with mapper configuration:</p>
+<div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">new</span> <span class="nc">ObjectMapper</span><span class="o">().</span><span class="na">setVisibility</span><span class="o">(</span>
+        <span class="nc">PropertyAccessor</span><span class="o">.</span><span class="na">FIELD</span><span class="o">,</span> 
+        <span class="nc">JsonAutoDetect</span><span class="o">.</span><span class="na">Visibility</span><span class="o">.</span><span class="na">ANY</span>
+<span class="o">);</span>
+</code></pre></div></div>
+
+<p>However this would alter serialization for all classes, in potentially breaking way. This can be solved on a per-class basis using mix-ins:</p>
+<div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kd">public</span> <span class="kd">abstract</span> <span class="kd">class</span> <span class="nc">NotFollowingJavaPropertyConventionZooMixIn</span> <span class="o">{</span>
+
+    <span class="nd">@JsonProperty</span><span class="o">(</span><span class="s">"giraffeCount"</span><span class="o">)</span>
+    <span class="kd">public</span> <span class="kd">abstract</span> <span class="kt">int</span> <span class="nf">giraffeCount</span><span class="o">();</span>
+
+    <span class="nd">@JsonProperty</span><span class="o">(</span><span class="s">"open"</span><span class="o">)</span>
+    <span class="kd">public</span> <span class="kd">abstract</span> <span class="kt">boolean</span> <span class="nf">open</span><span class="o">();</span>
+<span class="o">}</span>
+</code></pre></div></div>
+
+<div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nc">ObjectMapper</span> <span class="n">objectMapper</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">ObjectMapper</span><span class="o">().</span><span class="na">addMixIn</span><span class="o">(</span>
+        <span class="nc">NotFollowingJavaPropertyConventionZoo</span><span class="o">.</span><span class="na">class</span><span class="o">,</span> 
+        <span class="nc">NotFollowingJavaPropertyConventionZooMixIn</span><span class="o">.</span><span class="na">class</span>
+<span class="o">);</span>
+
+<span class="nc">NotFollowingJavaPropertyConventionZoo</span> <span class="n">zoo</span> 
+        <span class="o">=</span> <span class="k">new</span> <span class="nc">NotFollowingJavaPropertyConventionZoo</span><span class="o">(</span><span class="mi">42</span><span class="o">,</span> <span class="kc">false</span><span class="o">);</span>
+<span class="n">objectMapper</span><span class="o">.</span><span class="na">writeValueAsString</span><span class="o">(</span><span class="n">zoo</span><span class="o">);</span>
+</code></pre></div></div>
+
+<h2>Fields that should not be deserialized</h2>
+
+<p>Another interesting example would be an object that has some properties that we don’t want to serialize, for example, a cached field:</p>
+<div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kd">public</span> <span class="kd">class</span> <span class="nc">HasPropertiesToIgnoreZoo</span> <span class="o">{</span>
+
+    <span class="kd">private</span> <span class="kd">final</span> <span class="kt">int</span> <span class="n">giraffeCount</span><span class="o">;</span>
+    <span class="kd">private</span> <span class="kd">final</span> <span class="kt">int</span> <span class="n">sealCount</span><span class="o">;</span>
+    <span class="kd">private</span> <span class="kd">final</span> <span class="kt">int</span> <span class="n">totalCountCache</span><span class="o">;</span>
+
+
+    <span class="kd">public</span> <span class="nf">HasPropertiesToIgnoreZoo</span><span class="o">(</span><span class="kt">int</span> <span class="n">giraffeCount</span><span class="o">,</span> <span class="kt">int</span> <span class="n">sealCount</span><span class="o">)</span> <span class="o">{</span>
+        <span class="k">this</span><span class="o">.</span><span class="na">giraffeCount</span> <span class="o">=</span> <span class="n">giraffeCount</span><span class="o">;</span>
+        <span class="k">this</span><span class="o">.</span><span class="na">sealCount</span> <span class="o">=</span> <span class="n">sealCount</span><span class="o">;</span>
+        <span class="k">this</span><span class="o">.</span><span class="na">totalCountCache</span> <span class="o">=</span> <span class="n">giraffeCount</span> <span class="o">+</span> <span class="n">sealCount</span><span class="o">;</span>
+    <span class="o">}</span>
+
+
+    <span class="kd">public</span> <span class="kt">int</span> <span class="nf">getGiraffeCount</span><span class="o">()</span> <span class="o">{</span>
+        <span class="k">return</span> <span class="n">giraffeCount</span><span class="o">;</span>
+    <span class="o">}</span>
+
+    <span class="kd">public</span> <span class="kt">int</span> <span class="nf">getSealCount</span><span class="o">()</span> <span class="o">{</span>
+        <span class="k">return</span> <span class="n">sealCount</span><span class="o">;</span>
+    <span class="o">}</span>
+
+    <span class="kd">public</span> <span class="kt">int</span> <span class="nf">getTotalCount</span><span class="o">()</span> <span class="o">{</span>
+        <span class="k">return</span> <span class="n">totalCountCache</span><span class="o">;</span>
+    <span class="o">}</span>
+<span class="o">}</span>
+</code></pre></div></div>
+
+<p>We can force total count to be ignored using following mix-in:</p>
+<div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kd">public</span> <span class="kd">abstract</span> <span class="kd">class</span> <span class="nc">HasPropertiesToIgnoreZooMixIn</span> <span class="o">{</span>
+
+    <span class="nd">@JsonIgnore</span>
+    <span class="kd">public</span> <span class="kd">abstract</span> <span class="kt">int</span> <span class="nf">getTotalCount</span><span class="o">();</span>
+<span class="o">}</span>
+</code></pre></div></div>
+
+<h2>Instead of conclusion</h2>
+
+<p>Hope this helps and leave comment below if you want me to cover specific topic, thanks!</p>
+        </div><!-- .post-content -->
+        <footer class="post-footer inner-small outer">
+            <div class="post-share">
+                <span>Share:</span>
+                <a class="button button-icon button-fill-horz"
+                    href="https://twitter.com/intent/tweet?text=Jackson%20mix-ins&amp;url=https://romanmarkunas.com/protocols/2020/06/03/0009-protocols-jackson-mixins/"
+                    target="_blank" rel="noopener"><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M23.954 4.569a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.691 8.094 4.066 6.13 1.64 3.161a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.061a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.937 4.937 0 004.604 3.417 9.868 9.868 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.054 0 13.999-7.496 13.999-13.986 0-.209 0-.42-.015-.63a9.936 9.936 0 002.46-2.548l-.047-.02z"/></svg><span
+                        class="screen-reader-text">Share on Twitter</span></a>
+                <a class="button button-icon button-fill-horz"
+                    href="https://www.facebook.com/sharer/sharer.php?u=https://romanmarkunas.com/protocols/2020/06/03/0009-protocols-jackson-mixins/&amp;t=Jackson%20mix-ins"
+                    target="_blank" rel="noopener"><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M23.998 12c0-6.628-5.372-12-11.999-12C5.372 0 0 5.372 0 12c0 5.988 4.388 10.952 10.124 11.852v-8.384H7.078v-3.469h3.046V9.356c0-3.008 1.792-4.669 4.532-4.669 1.313 0 2.686.234 2.686.234v2.953H15.83c-1.49 0-1.955.925-1.955 1.874V12h3.328l-.532 3.469h-2.796v8.384c5.736-.9 10.124-5.864 10.124-11.853z"/></svg><span
+                        class="screen-reader-text">Share on Facebook</span></a>
+            </div>
+<!--            -->
+<!--            <div class="post-tags">-->
+<!--                <span>Tags:</span>-->
+<!--                <a href="/tags/index.html#protocols" rel="tag">protocols</a><a href="/tags/index.html#java" rel="tag">java</a><a href="/tags/index.html#jackson" rel="tag">jackson</a><a href="/tags/index.html#messaging" rel="tag">messaging</a><a href="/tags/index.html#design" rel="tag">design</a>-->
+<!--            </div>-->
+<!--            -->
+        </footer><!-- .post-footer -->
+    </article><!-- .post -->
+    <nav class="post-navigation">
+        <h2 class="screen-reader-text">Read Next</h2>
+        
+        <div class="nav-previous">
+            <div class="nav-inside inner-small outer">
+                
+                <div class="nav-before">Previous</div>
+                <h3 class="nav-title"><a href="/microservices/2018/11/15/0008-microservices-dropwizard-101/">Getting started with Dropwizard</a>
+                </h3>
+                <div class="nav-date">November 15, 2018</div>
+            </div><!-- .nav-inside -->
+        </div><!-- .nav-previous -->
+        
+        
+    </nav><!-- .post-navigation -->
+
+    <div class="comments-area">
+        <div class="inner-small outer">
+<!--            <h2 class="comments-title line-accent">Comments</h2>-->
+            <div id="hyvor-talk-view"></div>
+            <script type="text/javascript">
+                var HYVOR_TALK_WEBSITE = 708; // DO NOT CHANGE THIS
+                var HYVOR_TALK_CONFIG = {
+                    url: 'https://romanmarkunas.com/protocols/2020/06/03/0009-protocols-jackson-mixins/',
+                    id: '/protocols/2020/06/03/--0009---protocols---jackson-mixins'
+                };
+            </script>
+            <script async type="text/javascript" src="//talk.hyvor.com/web-api/embed"></script>
+
+        </div><!-- .inner-small -->
+    </div><!-- .comments-area -->
+
+</div><!-- .primary -->
+
+<aside class="sidebar">
+
+    <section class="widget widget-text">
+        <h2 class="widget-title line-accent">About</h2>
+        <p style="text-align:justify;">
+            I am Roma, a Java developer focusing on high-throughput
+            systems. This blog is a collection of tech, performance and
+            design tips, broadly covering my experience out in the field.
+        </p>
+    </section><!-- .widget-text -->
+
+    
+
+    
+
+    <section class="widget widget-recent-posts">
+        <h2 class="widget-title line-accent">Latest Posts</h2>
+        <ul class="recent-posts">
+            
+            <li class="recent-item"><a href="/protocols/2020/06/03/0009-protocols-jackson-mixins/">Jackson mix-ins</a> <span>June 3, 2020</span></li>
+            
+            <li class="recent-item"><a href="/microservices/2018/11/15/0008-microservices-dropwizard-101/">Getting started with Dropwizard</a> <span>November 15, 2018</span></li>
+            
+            <li class="recent-item"><a href="/build/2018/11/13/0007-build-gradle-fat-jars/">Creating fat JARs with gradle</a> <span>November 13, 2018</span></li>
+            
+            <li class="recent-item"><a href="/messaging/2018/10/01/0006-messaging-kafka-in-practice-1-producer/">Kafka transactions in practice 1: Producer</a> <span>October 1, 2018</span></li>
+            
+            <li class="recent-item"><a href="/core-java/2018/10/01/0005-core-java-random/">Notes on Java Random</a> <span>October 1, 2018</span></li>
+            
+        </ul><!-- .recent-posts -->
+    </section><!-- .widget-recent-posts -->
+
+    <!--Create a sorted array of tags-->
+    
+    
+    <section class="widget widget-tags">
+        <h2 class="widget-title line-accent">Tags</h2>
+        <div class="tagcloud">
+            <a href="/tags/#build">build</a><a href="/tags/#concurrency">concurrency</a><a href="/tags/#core+java">core java</a><a href="/tags/#coroutines">coroutines</a><a href="/tags/#design">design</a><a href="/tags/#dropwizard">dropwizard</a><a href="/tags/#gradle">gradle</a><a href="/tags/#jackson">jackson</a><a href="/tags/#java">java</a><a href="/tags/#kafka">kafka</a><a href="/tags/#low+latency">low latency</a><a href="/tags/#messaging">messaging</a><a href="/tags/#microservices">microservices</a><a href="/tags/#multithreading">multithreading</a><a href="/tags/#non-blocking+IO">non-blocking IO</a><a href="/tags/#protocols">protocols</a><a href="/tags/#quasar">quasar</a>
+        </div><!-- .tagcloud -->
+    </section><!-- .widget -->
+
+</aside><!-- .sidebar -->
+
+
+                </main><!-- .site-main -->
+            </div><!-- .inner -->
+        </div><!-- .site-content -->
+        <footer class="site-footer outer">
+    <div class="inner">
+        <div class="site-info">
+            <a href="#top" id="js-top-link" class="top-link button button-icon button-fill-horz"><span class="screen-reader-text">Back to the top</span><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M3.44 18.359l8.56-8.541 8.56 8.541 2.63-2.63-11.189-11.189-11.189 11.189z"></path></svg></a>
+        </div><!-- .site-info -->
+    </div><!-- .inner -->
+</footer><!-- .site-footer -->
+
+    </div><!-- .site -->
+    
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-117056147-2"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-117056147-2');
+</script>
+
+    
+    <script src="/js/scripts.js"></script>
+</body>
+</html>

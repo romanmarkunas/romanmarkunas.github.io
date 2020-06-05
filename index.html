@@ -88,6 +88,53 @@
     <article class="post">
         <header class="post-header">
             <div class="post-header-wrap">
+                <h2 class="post-title outer"><a href="/protocols/2020/06/03/0009-protocols-jackson-mixins/" rel="bookmark">Jackson mix-ins</a></h2>
+            </div>
+        </header><!-- .post-header -->
+        <div class="post-content inner-small outer">
+            <time class="published" datetime="2020-06-03">2020-06-03</time><span class="reading-time" title="Estimated read time">
+  
+  
+    	&mdash; 7 min read
+  
+</span>
+
+
+            <br>
+
+            
+                
+                    <a href="/tags/index.html#protocols" rel="tag" id="a-post-tag">#protocols</a>
+                
+                    <a href="/tags/index.html#java" rel="tag" id="a-post-tag">#java</a>
+                
+                    <a href="/tags/index.html#jackson" rel="tag" id="a-post-tag">#jackson</a>
+                
+                    <a href="/tags/index.html#messaging" rel="tag" id="a-post-tag">#messaging</a>
+                
+                    <a href="/tags/index.html#design" rel="tag" id="a-post-tag">#design</a>
+                
+                <br>
+            
+            <br>
+
+            
+                <p>Jackson mix-ins are crucial to clearly separate application layers according to <a href="https://jeffreypalermo.com/2008/07/the-onion-architecture-part-1/">the onion architecture</a> (popularised further by 
+<a href="https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html">Rob Martin</a>), without code duplication and boilerplate. According to onion architecture  marshalling would sit in infrastructure level and domain objects should not be dependent on messaging infrastructure.</p>
+
+<p>Another important use case would be if you do not control source code for 
+serialised objects, but rather import them as library. In this case it is 
+impossible to annotate imported class.</p>
+
+
+                <p class="read-more"><a href="/protocols/2020/06/03/0009-protocols-jackson-mixins/" class="button">Read more</a></p>
+            
+        </div><!-- .post-content -->
+    </article><!-- .post -->
+    
+    <article class="post">
+        <header class="post-header">
+            <div class="post-header-wrap">
                 <h2 class="post-title outer"><a href="/microservices/2018/11/15/0008-microservices-dropwizard-101/" rel="bookmark">Getting started with Dropwizard</a></h2>
             </div>
         </header><!-- .post-header -->
@@ -239,35 +286,6 @@
         </div><!-- .post-content -->
     </article><!-- .post -->
     
-    <article class="post">
-        <header class="post-header">
-            <div class="post-header-wrap">
-                <h2 class="post-title outer"><a href="/uncategorized/2018/10/01/0004-uncategorized-monty-hall/" rel="bookmark">Monty-Hall problem</a></h2>
-            </div>
-        </header><!-- .post-header -->
-        <div class="post-content inner-small outer">
-            <time class="published" datetime="2018-10-01">2018-10-01</time><span class="reading-time" title="Estimated read time">
-  
-  
-    	&mdash; 1 min read
-  
-</span>
-
-
-            <br>
-
-            
-            <br>
-
-            
-                <p>This is totally random write-up and it made it here because it inspired post about Java Random number generation. Here is how it goes…</p>
-
-
-                <p class="read-more"><a href="/uncategorized/2018/10/01/0004-uncategorized-monty-hall/" class="button">Read more</a></p>
-            
-        </div><!-- .post-content -->
-    </article><!-- .post -->
-    
     
     <nav class="pagination">
         <h2 class="screen-reader-text">Posts navigation</h2>
@@ -300,6 +318,8 @@
         <h2 class="widget-title line-accent">Latest Posts</h2>
         <ul class="recent-posts">
             
+            <li class="recent-item"><a href="/protocols/2020/06/03/0009-protocols-jackson-mixins/">Jackson mix-ins</a> <span>June 3, 2020</span></li>
+            
             <li class="recent-item"><a href="/microservices/2018/11/15/0008-microservices-dropwizard-101/">Getting started with Dropwizard</a> <span>November 15, 2018</span></li>
             
             <li class="recent-item"><a href="/build/2018/11/13/0007-build-gradle-fat-jars/">Creating fat JARs with gradle</a> <span>November 13, 2018</span></li>
@@ -307,8 +327,6 @@
             <li class="recent-item"><a href="/messaging/2018/10/01/0006-messaging-kafka-in-practice-1-producer/">Kafka transactions in practice 1: Producer</a> <span>October 1, 2018</span></li>
             
             <li class="recent-item"><a href="/core-java/2018/10/01/0005-core-java-random/">Notes on Java Random</a> <span>October 1, 2018</span></li>
-            
-            <li class="recent-item"><a href="/uncategorized/2018/10/01/0004-uncategorized-monty-hall/">Monty-Hall problem</a> <span>October 1, 2018</span></li>
             
         </ul><!-- .recent-posts -->
     </section><!-- .widget-recent-posts -->
@@ -319,7 +337,7 @@
     <section class="widget widget-tags">
         <h2 class="widget-title line-accent">Tags</h2>
         <div class="tagcloud">
-            <a href="/tags/#build">build</a><a href="/tags/#concurrency">concurrency</a><a href="/tags/#core+java">core java</a><a href="/tags/#coroutines">coroutines</a><a href="/tags/#dropwizard">dropwizard</a><a href="/tags/#gradle">gradle</a><a href="/tags/#java">java</a><a href="/tags/#kafka">kafka</a><a href="/tags/#low+latency">low latency</a><a href="/tags/#messaging">messaging</a><a href="/tags/#microservices">microservices</a><a href="/tags/#multithreading">multithreading</a><a href="/tags/#non-blocking+IO">non-blocking IO</a><a href="/tags/#quasar">quasar</a>
+            <a href="/tags/#build">build</a><a href="/tags/#concurrency">concurrency</a><a href="/tags/#core+java">core java</a><a href="/tags/#coroutines">coroutines</a><a href="/tags/#design">design</a><a href="/tags/#dropwizard">dropwizard</a><a href="/tags/#gradle">gradle</a><a href="/tags/#jackson">jackson</a><a href="/tags/#java">java</a><a href="/tags/#kafka">kafka</a><a href="/tags/#low+latency">low latency</a><a href="/tags/#messaging">messaging</a><a href="/tags/#microservices">microservices</a><a href="/tags/#multithreading">multithreading</a><a href="/tags/#non-blocking+IO">non-blocking IO</a><a href="/tags/#protocols">protocols</a><a href="/tags/#quasar">quasar</a>
         </div><!-- .tagcloud -->
     </section><!-- .widget -->
 
