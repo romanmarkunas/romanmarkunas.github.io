@@ -164,7 +164,7 @@
     <url>
         <loc>https://romanmarkunas.com/tags/</loc>
         
-        <lastmod>2020-06-05T22:12:30+01:00</lastmod>
+        <lastmod>2020-06-30T09:27:31+01:00</lastmod>
         
 
         
@@ -181,7 +181,7 @@
     <url>
         <loc>https://romanmarkunas.com/</loc>
         
-        <lastmod>2020-06-05T22:12:30+01:00</lastmod>
+        <lastmod>2020-06-30T09:27:31+01:00</lastmod>
         
 
         
@@ -198,7 +198,7 @@
     <url>
         <loc>https://romanmarkunas.com/css/main.css</loc>
         
-        <lastmod>2020-06-05T22:12:30+01:00</lastmod>
+        <lastmod>2020-06-30T09:27:31+01:00</lastmod>
         
 
         
@@ -215,7 +215,7 @@
     <url>
         <loc>https://romanmarkunas.com/robots.txt</loc>
         
-        <lastmod>2020-06-05T22:12:30+01:00</lastmod>
+        <lastmod>2020-06-30T09:27:31+01:00</lastmod>
         
 
         
@@ -234,7 +234,7 @@
     <url>
         <loc>https://romanmarkunas.com/style-guide/</loc>
         
-        <lastmod>2020-06-05T22:12:30+01:00</lastmod>
+        <lastmod>2020-06-30T09:27:31+01:00</lastmod>
         
 
         
@@ -248,299 +248,44 @@
     
 
     
-    <url>
-        <loc>https://romanmarkunas.com/web/blog/hello-world/</loc>
-        
-        <lastmod>2020-06-05T22:12:30+01:00</lastmod>
-        
 
-        
-        <changefreq>monthly</changefreq>
-        
+    
 
-        
-        <priority>0.3</priority>
-        
-    </url>
     
 
     
-    <url>
-        <loc>https://romanmarkunas.com/hello-world/</loc>
-        
-        <lastmod>2020-06-05T22:12:30+01:00</lastmod>
-        
 
-        
-        <changefreq>monthly</changefreq>
-        
+    
 
-        
-        <priority>0.3</priority>
-        
-    </url>
     
 
     
-    <url>
-        <loc>https://romanmarkunas.com/web/blog/introduction-to-java-coroutines/</loc>
-        
-        <lastmod>2020-06-05T22:12:30+01:00</lastmod>
-        
 
-        
-        <changefreq>monthly</changefreq>
-        
+    
 
-        
-        <priority>0.3</priority>
-        
-    </url>
     
 
     
-    <url>
-        <loc>https://romanmarkunas.com/introduction-to-java-coroutines/</loc>
-        
-        <lastmod>2020-06-05T22:12:30+01:00</lastmod>
-        
 
-        
-        <changefreq>monthly</changefreq>
-        
+    
 
-        
-        <priority>0.3</priority>
-        
-    </url>
     
 
     
-    <url>
-        <loc>https://romanmarkunas.com/web/blog/messaging-system-latencies-part-1-apache-kafka/</loc>
-        
-        <lastmod>2020-06-05T22:12:30+01:00</lastmod>
-        
 
-        
-        <changefreq>monthly</changefreq>
-        
+    
 
-        
-        <priority>0.3</priority>
-        
-    </url>
     
 
     
-    <url>
-        <loc>https://romanmarkunas.com/messaging-system-latencies-part-1-apache-kafka/</loc>
-        
-        <lastmod>2020-06-05T22:12:30+01:00</lastmod>
-        
 
-        
-        <changefreq>monthly</changefreq>
-        
-
-        
-        <priority>0.3</priority>
-        
-    </url>
-    
-
-    
-    <url>
-        <loc>https://romanmarkunas.com/web/blog/monty-hall-problem/</loc>
-        
-        <lastmod>2020-06-05T22:12:30+01:00</lastmod>
-        
-
-        
-        <changefreq>monthly</changefreq>
-        
-
-        
-        <priority>0.3</priority>
-        
-    </url>
-    
-
-    
-    <url>
-        <loc>https://romanmarkunas.com/monty-hall-problem/</loc>
-        
-        <lastmod>2020-06-05T22:12:30+01:00</lastmod>
-        
-
-        
-        <changefreq>monthly</changefreq>
-        
-
-        
-        <priority>0.3</priority>
-        
-    </url>
-    
-
-    
-    <url>
-        <loc>https://romanmarkunas.com/web/blog/notes-on-java-random/</loc>
-        
-        <lastmod>2020-06-05T22:12:30+01:00</lastmod>
-        
-
-        
-        <changefreq>monthly</changefreq>
-        
-
-        
-        <priority>0.3</priority>
-        
-    </url>
-    
-
-    
-    <url>
-        <loc>https://romanmarkunas.com/notes-on-java-random/</loc>
-        
-        <lastmod>2020-06-05T22:12:30+01:00</lastmod>
-        
-
-        
-        <changefreq>monthly</changefreq>
-        
-
-        
-        <priority>0.3</priority>
-        
-    </url>
-    
-
-    
-    <url>
-        <loc>https://romanmarkunas.com/web/blog/kafka-transactions-in-practice-1-producer/</loc>
-        
-        <lastmod>2020-06-05T22:12:30+01:00</lastmod>
-        
-
-        
-        <changefreq>monthly</changefreq>
-        
-
-        
-        <priority>0.3</priority>
-        
-    </url>
-    
-
-    
-    <url>
-        <loc>https://romanmarkunas.com/kafka-transactions-in-practice-1-producer/</loc>
-        
-        <lastmod>2020-06-05T22:12:30+01:00</lastmod>
-        
-
-        
-        <changefreq>monthly</changefreq>
-        
-
-        
-        <priority>0.3</priority>
-        
-    </url>
-    
-
-    
-    <url>
-        <loc>https://romanmarkunas.com/web/blog/creating-fat-jars-with-gradle/</loc>
-        
-        <lastmod>2020-06-05T22:12:30+01:00</lastmod>
-        
-
-        
-        <changefreq>monthly</changefreq>
-        
-
-        
-        <priority>0.3</priority>
-        
-    </url>
-    
-
-    
-    <url>
-        <loc>https://romanmarkunas.com/creating-fat-jars-with-gradle/</loc>
-        
-        <lastmod>2020-06-05T22:12:30+01:00</lastmod>
-        
-
-        
-        <changefreq>monthly</changefreq>
-        
-
-        
-        <priority>0.3</priority>
-        
-    </url>
-    
-
-    
-    <url>
-        <loc>https://romanmarkunas.com/web/blog/getting-started-with-dropwizard/</loc>
-        
-        <lastmod>2020-06-05T22:12:30+01:00</lastmod>
-        
-
-        
-        <changefreq>monthly</changefreq>
-        
-
-        
-        <priority>0.3</priority>
-        
-    </url>
-    
-
-    
-    <url>
-        <loc>https://romanmarkunas.com/getting-started-with-dropwizard/</loc>
-        
-        <lastmod>2020-06-05T22:12:30+01:00</lastmod>
-        
-
-        
-        <changefreq>monthly</changefreq>
-        
-
-        
-        <priority>0.3</priority>
-        
-    </url>
-    
-
-    
-    <url>
-        <loc>https://romanmarkunas.com/web/blog/</loc>
-        
-        <lastmod>2020-06-05T22:12:30+01:00</lastmod>
-        
-
-        
-        <changefreq>monthly</changefreq>
-        
-
-        
-        <priority>0.3</priority>
-        
-    </url>
     
 
     
     <url>
         <loc>https://romanmarkunas.com/redirects.json</loc>
         
-        <lastmod>2020-06-05T22:12:30+01:00</lastmod>
+        <lastmod>2020-06-30T09:27:31+01:00</lastmod>
         
 
         
@@ -557,7 +302,7 @@
     <url>
         <loc>https://romanmarkunas.com/blog/page2/</loc>
         
-        <lastmod>2020-06-05T22:12:30+01:00</lastmod>
+        <lastmod>2020-06-30T09:27:31+01:00</lastmod>
         
 
         
@@ -574,7 +319,7 @@
     <url>
         <loc>https://romanmarkunas.com/css/main.css.map</loc>
         
-        <lastmod>2020-06-05T22:12:30+01:00</lastmod>
+        <lastmod>2020-06-30T09:27:31+01:00</lastmod>
         
 
         
