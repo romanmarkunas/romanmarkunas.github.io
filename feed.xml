@@ -5,9 +5,467 @@
         <description>Java, performance and design tips by Roman Markunas (Romans Markuns)</description>
         <link>https://romanmarkunas.com/</link>
         <atom:link href="https://romanmarkunas.com/feed.xml" rel="self" type="application/rss+xml"/>
-        <pubDate>Tue, 30 Jun 2020 09:27:31 +0100</pubDate>
-        <lastBuildDate>Tue, 30 Jun 2020 09:27:31 +0100</lastBuildDate>
+        <pubDate>Wed, 19 Aug 2020 22:53:29 +0100</pubDate>
+        <lastBuildDate>Wed, 19 Aug 2020 22:53:29 +0100</lastBuildDate>
         <generator>Jekyll v4.0.1</generator>
+        
+            <item>
+                <title>Reducing JVM heap size, part 2: Optimizing</title>
+                <description>&lt;p&gt;In this article we will look at different ways to figure out and fix unnecessary memory consumption by JVM. This is useful for JVM applications that store huge amount of data in memory and can help avoid OutOfMemoryError if application data cannot be partitioned and scaled horizontally.&lt;/p&gt;
+
+&lt;p&gt;In part 2, we will take a look on couple of techniques used to reduce JVM heap size. &lt;!--more--&gt; The techniques listed in the order of least invasive to most, so that optimization does just enough for application to work and keeps it as maintainable as possible. The example application can be found in &lt;a href=&quot;/performance/2020/07/01/0010-performance-reducing-jvm-memory-footprint-1-profile/&quot;&gt;part 1&lt;/a&gt; or in &lt;a href=&quot;https://github.com/romanmarkunas-com/0010-memory-optimization&quot;&gt;example source code&lt;/a&gt;.&lt;/p&gt;
+
+&lt;h2&gt;Memory optimisation - data structures&lt;/h2&gt;
+
+&lt;p&gt;As mentioned before we could fit around 204500 orders/54600 users into 64M heap. Let’s take a look on how we can improve this.&lt;/p&gt;
+
+&lt;p&gt;The least intrusive change is usually changing data structures that hold objects. These usually conform to some of Java collection interfaces and changing them would not introduce much change in the code. Let’s see how much memory we can save by doing so.&lt;/p&gt;
+
+&lt;p&gt;First obvious candidate would be &lt;code class=&quot;highlighter-rouge&quot;&gt;ArrayList&lt;/code&gt; as it’s no arg constructor would create a list which will have capacity of 10 after first insertion. However we have around 200K orders across 50K users, which brings the average number of orders per list to 4. We can be aggressive and set that size to 1 initially. That gives us 209000 orders/54900 users. Easy win, but only 2%.&lt;/p&gt;
+
+&lt;p&gt;Second optimization has to do with java &lt;code class=&quot;highlighter-rouge&quot;&gt;HashMap&lt;/code&gt;, which uses simple chaining implementation. That is memory efficient only if map key collision rate is low. In our case both order and user ids is about 18% (&lt;a href=&quot;https://github.com/romanmarkunas-com/0010-memory-optimization/blob/master/src/test/java/com/romanmarkunas/blog/memory/example1/HashCollisionTest.java&quot;&gt;see this test&lt;/a&gt;), so there might be potential here. Maps that use open addressing implementation remain memory efficient even with high collision rates. Any open addressing implementation should do, as collision resolution strategy (probing, Robin-Hood, cuckoo, etc) should not significantly impact memory footprint.&lt;/p&gt;
+
+&lt;p&gt;I’ll use Agrona &lt;code class=&quot;highlighter-rouge&quot;&gt;Object2ObjectHashMap&lt;/code&gt; to test this. Agrona’s implementation also does not create extra &lt;code class=&quot;highlighter-rouge&quot;&gt;Node&lt;/code&gt; objects, as it stores keys and values as even and odd indexes in the same array. Changing map implementation (&lt;a href=&quot;https://github.com/romanmarkunas-com/0010-memory-optimization/blob/3550717a4e365a87f4000c6ea703a2c4f3d847d1/src/test/java/com/romanmarkunas/blog/memory/OrderStoreMainTest.java#L141&quot;&gt;example 8&lt;/a&gt;) gives us 231500 orders/56000 users, which is significant 11% increase.&lt;/p&gt;
+
+&lt;h2&gt;Memory optimisation - using minimal types to store data&lt;/h2&gt;
+
+&lt;p&gt;Let’s take a look at &lt;code class=&quot;highlighter-rouge&quot;&gt;Order&lt;/code&gt; objects themselves.&lt;/p&gt;
+
+&lt;p&gt;First step is to look at the structure of stored values. We want them to have as flat structure as possible, minimizing extra object header overhead. In our case we would just get rid of a boxed type. This brings us to 245900 orders/56600 users, which is another 6%. Quite significant increase for this little work.&lt;/p&gt;
+
+&lt;p&gt;Now when the low hanging fruit was plucked, we should take a look at out value type and evaluate if we represent data with appropriate types.&lt;/p&gt;
+
+&lt;p&gt;In or case, we have another field which is secretly boxed, which is &lt;code class=&quot;highlighter-rouge&quot;&gt;Order#id&lt;/code&gt;. At the moment, this field is just a number, but wrapped as &lt;code class=&quot;highlighter-rouge&quot;&gt;String&lt;/code&gt;. Most times there is no need for id field to be a string, as we can represent enough unique identifiers with a simple number (or a tuple of numbers) and have a &lt;code class=&quot;highlighter-rouge&quot;&gt;Long&lt;/code&gt; keys in a map:&lt;/p&gt;
+
+&lt;div class=&quot;language-java highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;kd&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;final&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;class&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Order&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+
+    &lt;span class=&quot;kd&quot;&gt;private&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;final&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;long&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;id&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;kd&quot;&gt;private&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;final&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;String&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;user&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;kd&quot;&gt;private&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;final&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;articleNr&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;kd&quot;&gt;private&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;final&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;count&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;kd&quot;&gt;private&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;final&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;price&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;kd&quot;&gt;private&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;final&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;String&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;address&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+
+    &lt;span class=&quot;c1&quot;&gt;// rest of class omitted for clarity&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;div class=&quot;language-java highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nc&quot;&gt;Map&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;Long&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Order&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ordersById&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Object2ObjectHashMap&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&amp;gt;();&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;By doing so we can fit 276100 order/57900 users, that’s another 12% up. However, we are now forced to waste some memory for autoboxing &lt;code class=&quot;highlighter-rouge&quot;&gt;long&lt;/code&gt;, which we can fix by using primitive collection. There are ready libraries to do this, for example Trove collections. Here I’ll use Agrona, since I’ve already used it in example before:&lt;/p&gt;
+
+&lt;div class=&quot;language-java highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nc&quot;&gt;Long2ObjectHashMap&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;Order&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ordersById&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Long2ObjectHashMap&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&amp;gt;();&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;That’s 288300 orders/58300 users, which is extra 4%, and the final code can be observed in &lt;a href=&quot;https://github.com/romanmarkunas-com/0010-memory-optimization/blob/3550717a4e365a87f4000c6ea703a2c4f3d847d1/src/test/java/com/romanmarkunas/blog/memory/OrderStoreMainTest.java#L151&quot;&gt;example 9&lt;/a&gt;.&lt;/p&gt;
+
+&lt;h2&gt;Memory optimisation - shared object pool&lt;/h2&gt;
+
+&lt;p&gt;At this point most of memory would be occupied by address &lt;code class=&quot;highlighter-rouge&quot;&gt;String&lt;/code&gt;. The problem here is that addresses contain lots of repeating information: cities, post codes, street numbers, names and surnames, etc. What we can try to do, is to break address apart into these components and share repeating instances between &lt;code class=&quot;highlighter-rouge&quot;&gt;Order&lt;/code&gt; values. JVM even has built in &lt;code class=&quot;highlighter-rouge&quot;&gt;String&lt;/code&gt; pool for us to use!&lt;/p&gt;
+
+&lt;p&gt;I’ve decided to break up address like this:&lt;/p&gt;
+
+&lt;div class=&quot;language-java highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;kd&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;final&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;class&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Order&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+
+    &lt;span class=&quot;kd&quot;&gt;private&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;final&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;long&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;id&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;kd&quot;&gt;private&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;final&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;String&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;user&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;kd&quot;&gt;private&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;final&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;articleNr&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;kd&quot;&gt;private&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;final&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;count&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;kd&quot;&gt;private&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;final&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;pricePence&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;kd&quot;&gt;private&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;final&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;String&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;addressNumber&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;kd&quot;&gt;private&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;final&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;String&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;addressStreet&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;kd&quot;&gt;private&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;final&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;String&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;addressCity&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;kd&quot;&gt;private&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;final&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;String&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;addressRegion&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;kd&quot;&gt;private&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;final&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;String&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;addressPostCode&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+
+    &lt;span class=&quot;c1&quot;&gt;// rest of class omitted for clarity&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Without pooling we can only fit 144200 orders/50000 users into memory, which again proves that object header overhead is very significant. It might seem like a step back, but let’s turn &lt;code class=&quot;highlighter-rouge&quot;&gt;String&lt;/code&gt; pooling on in &lt;code class=&quot;highlighter-rouge&quot;&gt;Order&lt;/code&gt; constructor (&lt;a href=&quot;https://github.com/romanmarkunas-com/0010-memory-optimization/blob/3550717a4e365a87f4000c6ea703a2c4f3d847d1/src/test/java/com/romanmarkunas/blog/memory/OrderStoreMainTest.java#L161&quot;&gt;example 10&lt;/a&gt;):&lt;/p&gt;
+
+&lt;div class=&quot;language-java highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nd&quot;&gt;@JsonCreator&lt;/span&gt;
+&lt;span class=&quot;kd&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;Order&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;
+        &lt;span class=&quot;c1&quot;&gt;// some fields omitted&lt;/span&gt;
+        &lt;span class=&quot;nd&quot;&gt;@JsonProperty&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;addressNumber&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;String&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;addressNumber&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt;
+        &lt;span class=&quot;nd&quot;&gt;@JsonProperty&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;addressStreet&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;String&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;addressStreet&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt;
+        &lt;span class=&quot;nd&quot;&gt;@JsonProperty&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;addressCity&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;String&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;addressCity&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt;
+        &lt;span class=&quot;nd&quot;&gt;@JsonProperty&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;addressRegion&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;String&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;addressRegion&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt;
+        &lt;span class=&quot;nd&quot;&gt;@JsonProperty&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;addressPostCode&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;String&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;addressPostCode&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;c1&quot;&gt;// some fields omitted&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;this&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;addressNumber&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;addressNumber&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;intern&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;();&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;this&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;addressStreet&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;addressStreet&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;intern&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;();&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;this&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;addressCity&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;addressCity&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;intern&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;();&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;this&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;addressRegion&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;addressRegion&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;intern&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;();&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;this&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;addressPostCode&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;addressPostCode&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;intern&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;();&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;which let’s us fit 386000 orders/61000 users into memory (+34%)! JVM since version 7 does not allocate interned &lt;code class=&quot;highlighter-rouge&quot;&gt;String&lt;/code&gt; objects in native memory, therefore this gain is fair comparison (this can be double checked by running JVM with flags &lt;code class=&quot;highlighter-rouge&quot;&gt;-XX:+UnlockDiagnosticVMOptions -XX:NativeMemoryTracking=summary -XX:+PrintNMTStatistics&lt;/code&gt; and inspecting memory usage).&lt;/p&gt;
+
+&lt;p&gt;As far as I know, &lt;code class=&quot;highlighter-rouge&quot;&gt;String&lt;/code&gt; pool is the only JVM pool which is usable by application, because &lt;code class=&quot;highlighter-rouge&quot;&gt;Integer&lt;/code&gt; pool goes only up to 128. However, it shouldn’t be hard to pool any user defined object. Usability of this method depends on how much of data is repeating and how it could be split and the object overhead of internal pool implementation (e.g. be careful with tree-like collections which allocate extra object for every node).&lt;/p&gt;
+
+&lt;h2&gt;Memory optimisation - data encoding&lt;/h2&gt;
+
+&lt;p&gt;Compression approach can save some memory at the expense of processing power and code maintainability as switching form JDK types to custom ones limits the usage of library methods.&lt;/p&gt;
+
+&lt;p&gt;Since we only use capital letters and digits for ids, we can encode strings using base 36 encoding. Base 36 values would take only 6 bits each, instead of usual 8 bits (16 bits before Java 9) per character, therefore it is expected to save about 25% of memory (60% before Java9):&lt;/p&gt;
+
+&lt;div class=&quot;language-java highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;kd&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;Order&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;
+            &lt;span class=&quot;nd&quot;&gt;@JsonProperty&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;id&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;long&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;id&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt;
+            &lt;span class=&quot;nd&quot;&gt;@JsonProperty&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;user&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;byte&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;[]&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;user&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt;
+            &lt;span class=&quot;c1&quot;&gt;// rest omitted&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;and we only need to store reference to string as a map key:&lt;/p&gt;
+
+&lt;div class=&quot;language-java highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;n&quot;&gt;ordersByUser&lt;/span&gt;
+        &lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;computeIfAbsent&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;
+                &lt;span class=&quot;k&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;Base36String&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;order&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;getUser&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;()),&lt;/span&gt; 
+                &lt;span class=&quot;n&quot;&gt;key&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;ArrayList&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&amp;gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+        &lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+        &lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;add&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;order&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;More compact encoding (&lt;a href=&quot;https://github.com/romanmarkunas-com/0010-memory-optimization/blob/3550717a4e365a87f4000c6ea703a2c4f3d847d1/src/test/java/com/romanmarkunas/blog/memory/OrderStoreMainTest.java#L175&quot;&gt;example 11&lt;/a&gt;) and not storing extra reference on &lt;code class=&quot;highlighter-rouge&quot;&gt;Order&lt;/code&gt; objects allows us to stuff JVM with 481300 orders/62800 users (+24%).&lt;/p&gt;
+
+&lt;h2&gt;Memory optimisation - ditching references&lt;/h2&gt;
+
+&lt;p&gt;Now we can try to get rid of extra &lt;code class=&quot;highlighter-rouge&quot;&gt;String&lt;/code&gt; object references and store only &lt;code class=&quot;highlighter-rouge&quot;&gt;byte[]&lt;/code&gt;. If we ever need a &lt;code class=&quot;highlighter-rouge&quot;&gt;String&lt;/code&gt; object later in code we can allocate short-lived object for that operation or use a view wrapper. This is somewhat risky, because arrays in Java are not immutable, but let’s see how much memory we can save that way.&lt;/p&gt;
+
+&lt;p&gt;Simple type replacement, however, would not work here as our strings are pooled objects. Therefore, we need to roll out our own pool for &lt;code class=&quot;highlighter-rouge&quot;&gt;byte[]&lt;/code&gt;. This is a bit tricky in Java, cause Java arrays do not properly implement &lt;code class=&quot;highlighter-rouge&quot;&gt;hashCode&lt;/code&gt; or &lt;code class=&quot;highlighter-rouge&quot;&gt;equals&lt;/code&gt;, but we can leverage array order and &lt;code class=&quot;highlighter-rouge&quot;&gt;TreeSet&lt;/code&gt;:&lt;/p&gt;
+
+&lt;div class=&quot;language-java highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;kd&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;class&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;TreeBasedByteArrayPool&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;implements&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;ByteArrayPool&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+
+    &lt;span class=&quot;kd&quot;&gt;private&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;final&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;NavigableSet&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;byte&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;[]&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;values&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;TreeSet&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&amp;gt;(&lt;/span&gt;&lt;span class=&quot;nl&quot;&gt;Arrays:&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;compare&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+
+
+    &lt;span class=&quot;nd&quot;&gt;@Override&lt;/span&gt;
+    &lt;span class=&quot;kd&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;byte&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;[]&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;intern&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;byte&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;[]&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;in&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;kt&quot;&gt;boolean&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;newValue&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;values&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;add&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;in&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;newValue&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+            &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;in&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+        &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;else&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+            &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;values&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;floor&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;in&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+        &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+    &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;and inject pool during deserialization like so:&lt;/p&gt;
+
+&lt;div class=&quot;language-java highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nd&quot;&gt;@JsonCreator&lt;/span&gt;
+&lt;span class=&quot;kd&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;Order&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;
+        &lt;span class=&quot;nd&quot;&gt;@JsonProperty&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;id&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;long&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;id&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt;
+        &lt;span class=&quot;c1&quot;&gt;// more fields here ...&lt;/span&gt;
+        &lt;span class=&quot;nd&quot;&gt;@JacksonInject&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;ByteArrayPool&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;byteArrayPool&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;This approach (&lt;a href=&quot;https://github.com/romanmarkunas-com/0010-memory-optimization/blob/3550717a4e365a87f4000c6ea703a2c4f3d847d1/src/test/java/com/romanmarkunas/blog/memory/OrderStoreMainTest.java#L186&quot;&gt;example 12&lt;/a&gt;) doesn’t help us much, because by getting rid of some references in &lt;code class=&quot;highlighter-rouge&quot;&gt;Order&lt;/code&gt; object, we’ve created many more references within &lt;code class=&quot;highlighter-rouge&quot;&gt;TreeSet&lt;/code&gt;, and thus for this use-case we can actually fit less objects in memory. Even linear-time array-based implementation does not reduce memory footprint much, which means, that for our data structure this optimization is not useful.&lt;/p&gt;
+
+&lt;h2&gt;Memory optimisation - object compression&lt;/h2&gt;
+
+&lt;p&gt;Now what if we could compress the whole &lt;code class=&quot;highlighter-rouge&quot;&gt;Order&lt;/code&gt; object? In our case we must only compress fields which are not shared between &lt;code class=&quot;highlighter-rouge&quot;&gt;Order&lt;/code&gt; instances (non-address fields are &lt;code class=&quot;highlighter-rouge&quot;&gt;transient&lt;/code&gt;), hence we end up with something like this (&lt;a href=&quot;https://github.com/romanmarkunas-com/0010-memory-optimization/blob/3550717a4e365a87f4000c6ea703a2c4f3d847d1/src/test/java/com/romanmarkunas/blog/memory/OrderStoreMainTest.java#L197&quot;&gt;example 13&lt;/a&gt;):&lt;/p&gt;
+
+&lt;div class=&quot;language-java highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;kd&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;class&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;OrderCompressed&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+
+    &lt;span class=&quot;kd&quot;&gt;private&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;final&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;byte&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;[]&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;compressedPart&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;c1&quot;&gt;// shared fields omitted&lt;/span&gt;
+    &lt;span class=&quot;c1&quot;&gt;// constructor omitted&lt;/span&gt;
+
+    &lt;span class=&quot;kd&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;static&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;OrderCompressed&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;compress&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;Order&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;order&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;nc&quot;&gt;ByteArrayOutputStream&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;out&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;ByteArrayOutputStream&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;();&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;try&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;
+                &lt;span class=&quot;nc&quot;&gt;GZIPOutputStream&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;gzipOut&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;GZIPOutputStream&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;out&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+                &lt;span class=&quot;nc&quot;&gt;ObjectOutputStream&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;objectOut&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;ObjectOutputStream&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;gzipOut&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+        &lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+            &lt;span class=&quot;n&quot;&gt;objectOut&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;writeObject&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;order&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+        &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;catch&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;IOException&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;e&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+            &lt;span class=&quot;k&quot;&gt;throw&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;RuntimeException&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;Unable to serialize &quot;&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;order&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;e&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+        &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+        &lt;span class=&quot;kt&quot;&gt;byte&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;[]&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;bytes&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;out&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;toByteArray&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;();&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;OrderCompressed&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;
+                &lt;span class=&quot;n&quot;&gt;bytes&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt;
+                &lt;span class=&quot;n&quot;&gt;order&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;getAddressNumber&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(),&lt;/span&gt;
+                &lt;span class=&quot;n&quot;&gt;order&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;getAddressStreet&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(),&lt;/span&gt;
+                &lt;span class=&quot;n&quot;&gt;order&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;getAddressCity&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(),&lt;/span&gt;
+                &lt;span class=&quot;n&quot;&gt;order&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;getAddressRegion&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(),&lt;/span&gt;
+                &lt;span class=&quot;n&quot;&gt;order&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;getAddressPostCode&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;()&lt;/span&gt;
+        &lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+    &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;In our case this also does not give any memory reduction, as we are only compressing couple of primitive fields. This technique is much more useful where it is impossible to share much data between retained objects.&lt;/p&gt;
+
+&lt;h2&gt;Conclusion&lt;/h2&gt;
+
+&lt;p&gt;Using appropriate data structures, variable types, compression and pooling we have reduced memory consumption by 135% (fitting 481300 orders instead of 204500). More memory usage reduction can be achieved by bulk compressing larger chunks of data together or moving off-heap. These however impact code and architecture quite a bit and must be considered along with data sharding approaches.&lt;/p&gt;
+</description>
+                <pubDate>Wed, 01 Jul 2020 00:00:00 +0100</pubDate>
+                <link>https://romanmarkunas.com/performance/2020/07/01/0011-performance-reducing-jvm-memory-footprint-2-optimizing/</link>
+                <guid isPermaLink="true">https://romanmarkunas.com/performance/2020/07/01/0011-performance-reducing-jvm-memory-footprint-2-optimizing/</guid>
+                
+                <category>performance</category>
+                
+                <category>java</category>
+                
+                <category>memory</category>
+                
+            </item>
+        
+            <item>
+                <title>Reducing JVM heap size, part 1: Profiling</title>
+                <description>&lt;p&gt;In this series we will look at different ways to figure out and fix unnecessary memory consumption by JVM. This is useful for JVM applications that store huge amount of data in memory and can help avoid OutOfMemoryError if application data cannot be partitioned and scaled horizontally.&lt;/p&gt;
+
+&lt;p&gt;In part 1, let’s take a look on how to identify which objects are responsible for increased heap size. &lt;!--more--&gt; In &lt;a href=&quot;/performance/2020/07/01/0011-performance-reducing-jvm-memory-footprint-2-optimizing/&quot;&gt;part 2&lt;/a&gt;, I’ll list a few optimization techniques that should help reduce heap size.&lt;/p&gt;
+
+&lt;p&gt;We will not look at memory leak detection in this post, however most profiling methods in this article will be useful in finding those too. We will also not focus on garbage-free approach to Java code. Let me know if you’re interested in these topics as well.&lt;/p&gt;
+
+&lt;p&gt;Source code of examples can be found &lt;a href=&quot;https://github.com/romanmarkunas-com/0010-memory-optimization&quot;&gt;here&lt;/a&gt;.&lt;/p&gt;
+
+&lt;h2&gt;Example application&lt;/h2&gt;
+
+&lt;p&gt;This corresponds to &lt;a href=&quot;https://github.com/romanmarkunas-com/0010-memory-optimization/blob/3550717a4e365a87f4000c6ea703a2c4f3d847d1/src/test/java/com/romanmarkunas/blog/memory/OrderStoreMainTest.java#L49&quot;&gt;example 1&lt;/a&gt;.&lt;/p&gt;
+
+&lt;p&gt;To emulate application with long-term memory store, we will launch separate JVM and we are going to feed it orders as such:&lt;/p&gt;
+
+&lt;div class=&quot;language-java highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;kd&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;final&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;class&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Order&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+
+    &lt;span class=&quot;kd&quot;&gt;private&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;final&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;String&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;id&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;kd&quot;&gt;private&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;final&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;String&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;user&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;kd&quot;&gt;private&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;final&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Integer&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;articleNr&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;kd&quot;&gt;private&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;final&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;count&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;kd&quot;&gt;private&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;final&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;price&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;kd&quot;&gt;private&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;final&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;String&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;address&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+
+    &lt;span class=&quot;c1&quot;&gt;// rest of class omitted for clarity&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;To compare runs of different implementations instances of &lt;code class=&quot;highlighter-rouge&quot;&gt;Order&lt;/code&gt; are created deterministically by seeding Random with the same seed.&lt;/p&gt;
+
+&lt;p&gt;To represent real-life data scenario we will take Alaska, USA address dataset collected by &lt;a href=&quot;http://openaddresses.io&quot;&gt;OpenAddresses&lt;/a&gt;, courtesy of &lt;a href=&quot;https://moa-muniorg.hub.arcgis.com/pages/data&quot;&gt;Municipality of Anchorage&lt;/a&gt;.&lt;/p&gt;
+
+&lt;p&gt;Orders are sent via stdin pipe, read by &lt;code class=&quot;highlighter-rouge&quot;&gt;Scanner&lt;/code&gt; and stored in example application in 2 maps, keyed by &lt;code class=&quot;highlighter-rouge&quot;&gt;id&lt;/code&gt; and &lt;code class=&quot;highlighter-rouge&quot;&gt;user&lt;/code&gt;:&lt;/p&gt;
+
+&lt;div class=&quot;language-java highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nc&quot;&gt;String&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;received&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;scanner&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;nextLine&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;();&lt;/span&gt;
+&lt;span class=&quot;nc&quot;&gt;Order&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;order&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;mapper&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;readValue&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;received&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Order&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;class&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;ordersById&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;put&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;order&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;getId&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(),&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;order&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;ordersByUser&lt;/span&gt;
+        &lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;computeIfAbsent&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;order&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;getUser&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(),&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;key&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;ArrayList&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&amp;gt;())&lt;/span&gt;
+        &lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;add&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;order&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Running our memory hungry application in JVM with &lt;code class=&quot;highlighter-rouge&quot;&gt;-Xmx64m&lt;/code&gt;` we get:&lt;/p&gt;
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;Total orders: 204785
+Total users: 54643
+Exception in thread &quot;main&quot; java.lang.OutOfMemoryError: Java heap space
+	at java.base/java.io.Reader.read(Reader.java:188)
+	at java.base/java.util.Scanner.readInput(Scanner.java:882)
+	at java.base/java.util.Scanner.findWithinHorizon(Scanner.java:1796)
+	at java.base/java.util.Scanner.hasNextLine(Scanner.java:1610)
+	at com.romanmarkunas.blog.memory.example1.OrderStoreMain.main(OrderStoreMain.java:19)
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Let’s pretend we don’t know what is the most memory hungry part of application and see how we can find out biggest memory consumers within JVM.&lt;/p&gt;
+
+&lt;h2&gt;Profiling - memory release pattern&lt;/h2&gt;
+
+&lt;blockquote&gt;
+  &lt;p&gt;Much of the profiling we do in this section relies on production-like data for real system. This is why it is highly advised to have most of mentioned JVM options enabled proactively for production system to properly monitor memory consumption.&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;First we need to identify what is the source of &lt;code class=&quot;highlighter-rouge&quot;&gt;OutOfMemoryError&lt;/code&gt;. Potentially we could have a current thread stack allocating and holding too many objects as part of it’s immediate operation (e.g. loading a huge file into memory in one go), so there might be problem with sizing JVM memory or algorithm. Alternatively, if we see a “sawtooth” pattern we could conclude that memory is being held long term. This corresponds to &lt;a href=&quot;https://github.com/romanmarkunas-com/0010-memory-optimization/blob/3550717a4e365a87f4000c6ea703a2c4f3d847d1/src/test/java/com/romanmarkunas/blog/memory/OrderStoreMainTest.java#L59&quot;&gt;example 2&lt;/a&gt;.&lt;/p&gt;
+
+&lt;p&gt;Running with &lt;code class=&quot;highlighter-rouge&quot;&gt;-Xlog:gc&lt;/code&gt; (or &lt;code class=&quot;highlighter-rouge&quot;&gt;-verbose:gc&lt;/code&gt; prior to Java 9), would give us following (&lt;code class=&quot;highlighter-rouge&quot;&gt;-XX:+PrintGCDetails&lt;/code&gt; omitted for clarity, run &lt;code class=&quot;highlighter-rouge&quot;&gt;java -Xlog:help&lt;/code&gt; for more options on logging post Java 8):&lt;/p&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;[0.008s][info][gc] Using G1
+[0.455s][info][gc] GC(0) Pause Young (Normal) (G1 Evacuation Pause) 24M-&amp;gt;3M(64M) 5.136ms
+[0.675s][info][gc] GC(1) Pause Young (Normal) (G1 Evacuation Pause) 38M-&amp;gt;7M(64M) 18.182ms
+...
+[2.021s][info][gc] GC(77) To-space exhausted
+[2.021s][info][gc] GC(77) Pause Young (Normal) (G1 Evacuation Pause) 62M-&amp;gt;61M(64M) 2.543ms
+[2.027s][info][gc] GC(78) To-space exhausted
+[2.027s][info][gc] GC(78) Pause Young (Normal) (G1 Evacuation Pause) 63M-&amp;gt;63M(64M) 3.311ms
+[2.102s][info][gc] GC(79) Pause Full (G1 Evacuation Pause) 63M-&amp;gt;54M(64M) 74.398ms
+...
+[7.532s][info][gc] GC(171) Pause Full (G1 Evacuation Pause) 63M-&amp;gt;63M(64M) 119.835ms
+[7.532s][info][gc] GC(172) Pause Young (Normal) (G1 Evacuation Pause) 63M-&amp;gt;63M(64M) 0.231ms
+[7.655s][info][gc] GC(173) Pause Full (G1 Evacuation Pause) 63M-&amp;gt;62M(64M) 122.730ms
+// OutOfMemoryError here
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Just as interesting side note - OutOfMemoryError happens while heap has little space left. Even though G1 is a compacting collector, slight memory fragmentation occurs (For example, each object from reclaimed region is too big to fit in left free space of almost full regions. Another case would be when, any region is taken by humongous object -  more reading &lt;a href=&quot;https://docs.oracle.com/javase/8/docs/technotes/guides/vm/gctuning/g1_gc_tuning.html#humongous&quot;&gt;here&lt;/a&gt;).&lt;/p&gt;
+
+&lt;p&gt;Observing used heap size after each collection (number just after &lt;code class=&quot;highlighter-rouge&quot;&gt;-&amp;gt;&lt;/code&gt;), we can see that it is always growing, creating infamous saw-tooth pattern. We can also observe (with &lt;code class=&quot;highlighter-rouge&quot;&gt;-Xlog:gc*&lt;/code&gt;) that G1 garbage collector shrunk young generation to single region (1024K) by the time of crash:&lt;/p&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;[4.714s][info][gc,heap,exit   ] Heap
+[4.714s][info][gc,heap,exit   ]  garbage-first heap   total 65536K, used 64505K [0x00000000fc000000, 0x0000000100000000)
+[4.714s][info][gc,heap,exit   ]   region size 1024K, 1 young (1024K), 0 survivors (0K)
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;This suggests we have either too much data or memory leak. Next, let’s find out what exactly fills the memory.&lt;/p&gt;
+
+&lt;h2&gt;Profiling - heap dumps&lt;/h2&gt;
+
+&lt;p&gt;Let’s start with easiest approach, which is option &lt;code class=&quot;highlighter-rouge&quot;&gt;-XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=dump.hprof&lt;/code&gt;. This will give use heap dump in binary format. Now to make sense of it, we need to open with any useful dump analysis tool. I do not recommend VisualVM, because it’s very bad in guessing object sizes, and for our particular example it would show retained sizes bigger than heap itself. It also does not include thread frames in dominator lists, which often is helpful. For this example I’ll use &lt;a href=&quot;https://www.eclipse.org/mat/downloads.php&quot;&gt;Eclipse MAT&lt;/a&gt;, which is a free, standalone, feature-full and precise memory analyser tool.&lt;/p&gt;
+
+&lt;p&gt;Once we open heap dump (&lt;a href=&quot;https://github.com/romanmarkunas-com/0010-memory-optimization/blob/3550717a4e365a87f4000c6ea703a2c4f3d847d1/src/test/java/com/romanmarkunas/blog/memory/OrderStoreMainTest.java#L71&quot;&gt;example 3&lt;/a&gt;), it’s quite obvious to figure out where most JVM memory is consumed:&lt;/p&gt;
+
+&lt;figure class=&quot;caption&quot;&gt;
+    &lt;img src=&quot;/images/posts/0010-memory/example3-overview.png&quot; alt=&quot;Obvious offender&quot; /&gt;
+    
+    &lt;figcaption class=&quot;caption-text&quot;&gt;Obvious offender&lt;/figcaption&gt; 
+    
+&lt;/figure&gt;
+
+&lt;p&gt;If we open &lt;strong&gt;dominator tree&lt;/strong&gt; and sort by retained heap, we will see why it is the case:&lt;/p&gt;
+
+&lt;figure class=&quot;caption&quot;&gt;
+    &lt;img src=&quot;/images/posts/0010-memory/example3-dominators.png&quot; alt=&quot;Dominating Thread&quot; /&gt;
+    
+    &lt;figcaption class=&quot;caption-text&quot;&gt;Dominating Thread&lt;/figcaption&gt; 
+    
+&lt;/figure&gt;
+
+&lt;p&gt;You may wonder why &lt;code class=&quot;highlighter-rouge&quot;&gt;Order&lt;/code&gt; objects in dominator tree are children of &lt;code class=&quot;highlighter-rouge&quot;&gt;Thread&lt;/code&gt; instead of &lt;code class=&quot;highlighter-rouge&quot;&gt;HashMap&lt;/code&gt; and why retained heap of both &lt;code class=&quot;highlighter-rouge&quot;&gt;HashMap&lt;/code&gt;’s is much smaller than total retained heap. The reason is that all &lt;code class=&quot;highlighter-rouge&quot;&gt;Order&lt;/code&gt; objects are retained by both maps, so if any single map becomes unreachable, none of &lt;code class=&quot;highlighter-rouge&quot;&gt;Order&lt;/code&gt; objects would be collected. However, if &lt;code class=&quot;highlighter-rouge&quot;&gt;Thread&lt;/code&gt; becomes unreachable, both &lt;code class=&quot;highlighter-rouge&quot;&gt;HashMap&lt;/code&gt; and in turn all &lt;code class=&quot;highlighter-rouge&quot;&gt;Order&lt;/code&gt;  will be eligible for garbage collection.&lt;/p&gt;
+
+&lt;blockquote&gt;
+  &lt;p&gt;Retained heap of the object is total memory that would be reclaimed by GC if this object would become unreachable.&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;This is exactly reason why dominator trees are not useful to figure out memory consumption in real-life application. Big data structures like caches are often shared between components and referenced via multiple GC roots, therefore they do not appear in dominator trees. To demonstrate this we can put our order map as a static variable (&lt;a href=&quot;https://github.com/romanmarkunas-com/0010-memory-optimization/blob/3550717a4e365a87f4000c6ea703a2c4f3d847d1/src/test/java/com/romanmarkunas/blog/memory/OrderStoreMainTest.java#L83&quot;&gt;example 4&lt;/a&gt;):&lt;/p&gt;
+
+&lt;div class=&quot;language-java highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;kd&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;class&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;TwoGCRootsOrderStoreMain&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+
+    &lt;span class=&quot;kd&quot;&gt;private&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;static&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Map&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;String&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Order&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ordersById&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;HashMap&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&amp;gt;();&lt;/span&gt;
+
+    &lt;span class=&quot;kd&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;static&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;void&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;main&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;String&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;[]&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;args&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;nc&quot;&gt;Map&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;String&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Order&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ordersById&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;TwoGCRootsOrderStoreMain&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;ordersById&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+        &lt;span class=&quot;c1&quot;&gt;// rest of code omitted&lt;/span&gt;
+    &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;and the dominator tree of that would look like:&lt;/p&gt;
+
+&lt;figure class=&quot;caption&quot;&gt;
+    &lt;img src=&quot;/images/posts/0010-memory/example4-dominators.png&quot; alt=&quot;No clear winner&quot; /&gt;
+    
+    &lt;figcaption class=&quot;caption-text&quot;&gt;No clear winner&lt;/figcaption&gt; 
+    
+&lt;/figure&gt;
+
+&lt;p&gt;which is not immediately helpful - top dominators take 25% of memory, while we clearly filled whole heap. In cases like above, &lt;strong&gt;histograms&lt;/strong&gt; are more useful, so lets create one and sort items by retained heap size:&lt;/p&gt;
+
+&lt;figure class=&quot;caption&quot;&gt;
+    &lt;img src=&quot;/images/posts/0010-memory/example3-histo.png&quot; alt=&quot;Object histogram&quot; /&gt;
+    
+    &lt;figcaption class=&quot;caption-text&quot;&gt;Object histogram&lt;/figcaption&gt; 
+    
+&lt;/figure&gt;
+
+&lt;p&gt;Here we can see a huge amount of &lt;code class=&quot;highlighter-rouge&quot;&gt;Order&lt;/code&gt; objects and, assuming it is our normal production scenario, we have found our offender.&lt;/p&gt;
+
+&lt;blockquote&gt;
+  &lt;p&gt;Histograms can be useful in finding memory/resource leaks in conjunction with other metric collection tools for your system. For example, if you publish count of current active TCP connections via metrics interface, but then you find out that number of &lt;code class=&quot;highlighter-rouge&quot;&gt;Socket&lt;/code&gt; objects in heap is much bigger, it is an obvious resource leak.&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;For a typical heap it is very likely that top objects would be &lt;code class=&quot;highlighter-rouge&quot;&gt;byte[]&lt;/code&gt;, &lt;code class=&quot;highlighter-rouge&quot;&gt;String&lt;/code&gt;, &lt;code class=&quot;highlighter-rouge&quot;&gt;HashMap$Node&lt;/code&gt;, &lt;code class=&quot;highlighter-rouge&quot;&gt;Object[]&lt;/code&gt; and &lt;code class=&quot;highlighter-rouge&quot;&gt;ConcurrentHashMap$Segment&lt;/code&gt;. And in bigger application  it’s typically not obvious what is holding all these objects. To find out right click on desired class object and select “Immediate dominators”. Our example for &lt;code class=&quot;highlighter-rouge&quot;&gt;String&lt;/code&gt; would give:&lt;/p&gt;
+
+&lt;figure class=&quot;caption&quot;&gt;
+    &lt;img src=&quot;/images/posts/0010-memory/example3-string-dominators.png&quot; alt=&quot;String dominators&quot; /&gt;
+    
+    &lt;figcaption class=&quot;caption-text&quot;&gt;String dominators&lt;/figcaption&gt; 
+    
+&lt;/figure&gt;
+
+&lt;p&gt;which tells us, that most &lt;code class=&quot;highlighter-rouge&quot;&gt;String&lt;/code&gt; instances are retained through &lt;code class=&quot;highlighter-rouge&quot;&gt;Order&lt;/code&gt; objects or a GC root, which is main &lt;code class=&quot;highlighter-rouge&quot;&gt;Thread&lt;/code&gt;. Also in histogram view: right-click on &lt;code class=&quot;highlighter-rouge&quot;&gt;String&lt;/code&gt; -&amp;gt; “Merge shortest paths to GC roots”, would give:&lt;/p&gt;
+
+&lt;figure class=&quot;caption&quot;&gt;
+    &lt;img src=&quot;/images/posts/0010-memory/example3-string-roots-0.png&quot; alt=&quot;String retain tree up to GC roots&quot; /&gt;
+    
+    &lt;figcaption class=&quot;caption-text&quot;&gt;String retain tree up to GC roots&lt;/figcaption&gt; 
+    
+&lt;/figure&gt;
+
+&lt;figure class=&quot;caption&quot;&gt;
+    &lt;img src=&quot;/images/posts/0010-memory/example3-string-roots-1.png&quot; alt=&quot;Which exact objects retain String&quot; /&gt;
+    
+    &lt;figcaption class=&quot;caption-text&quot;&gt;Which exact objects retain String&lt;/figcaption&gt; 
+    
+&lt;/figure&gt;
+
+&lt;p&gt;which tell us that &lt;code class=&quot;highlighter-rouge&quot;&gt;String&lt;/code&gt; objects are specifically retained as:&lt;/p&gt;
+&lt;ol&gt;
+  &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;Order&lt;/code&gt; object fields &lt;code class=&quot;highlighter-rouge&quot;&gt;user&lt;/code&gt; and &lt;code class=&quot;highlighter-rouge&quot;&gt;address&lt;/code&gt;, which in turn are &lt;code class=&quot;highlighter-rouge&quot;&gt;HashMap$Node&lt;/code&gt; values&lt;/li&gt;
+  &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;HashMap$Node&lt;/code&gt; keys&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;Again &lt;code class=&quot;highlighter-rouge&quot;&gt;Order#id&lt;/code&gt; is not retaining strings, as collecting order would not result in collection on id &lt;code class=&quot;highlighter-rouge&quot;&gt;String&lt;/code&gt; instance, because it is also retained as &lt;code class=&quot;highlighter-rouge&quot;&gt;HashMap$Node&lt;/code&gt; key. Collecting the whole node, however would cause id to be collected, as both key and value would no longer be reachable.&lt;/p&gt;
+
+&lt;p&gt;To obtain heap dump of live process, the recommended tool since Java 9 release is &lt;code class=&quot;highlighter-rouge&quot;&gt;jmap&lt;/code&gt; which is shipped together with JDK, for example &lt;code class=&quot;highlighter-rouge&quot;&gt;jmap -dump:live,format=b,file=dump.hprof &amp;lt;java-process-pid&amp;gt;&lt;/code&gt;. Alternatively, if JVM is launched with &lt;code class=&quot;highlighter-rouge&quot;&gt;PrintClassHistogram&lt;/code&gt; option &lt;code class=&quot;highlighter-rouge&quot;&gt;kill -QUIT &amp;lt;java-process-pid&amp;gt;&lt;/code&gt; will also do it. However, the latter option overrides default behavior of printing thread dump on SIGQUIT).&lt;/p&gt;
+
+&lt;h2&gt;Profiling - online profilers&lt;/h2&gt;
+
+&lt;p&gt;Analyzing heap dump is great, but not always possible as it causes stop-the-world pause, therefore not applicable when monitoring production systems (heap dumps can induce &lt;strong&gt;very&lt;/strong&gt; long pauses). To avoid this we can use online profilers, that collect sample data during runtime. Of course, we don’t get full picture using such method, but it still can give some clues on how application works and narrow the suspect circle.&lt;/p&gt;
+
+&lt;p&gt;Let’s take a look at JDK flight recorder, which is free feature of JDKs as of version 11. To get this right we will need to tweak quite a few configuration options to enable continuous recording so that we can periodically dump sample data (another option would be to start recording periodically using &lt;code class=&quot;highlighter-rouge&quot;&gt;jcmd &amp;lt;PID&amp;gt; JFR.start &amp;lt;all the same otions&amp;gt;&lt;/code&gt; command):&lt;/p&gt;
+&lt;ol&gt;
+  &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;-XX:+FlightRecorder&lt;/code&gt; - this enables JDK flight recorder&lt;/li&gt;
+  &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;-XX:FlightRecorderOptions:&lt;/code&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;memorysize=5m,&lt;/code&gt; - be aware of additional buffer that is required to collect sampling data, with size set here. Enabling JFR would also somewhat expand metaspace and use some extra heap.&lt;/li&gt;
+  &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;stackdepth=32&lt;/code&gt; - maximum stack depth to walk. Tuning this can help limit sampling overhead, cause some part of the stack might not be interesting, e.g. framewrok/servlet container dispatching&lt;/li&gt;
+  &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;-XX:StartFlightRecording:&lt;/code&gt; - starts a recording as part of JVM launch&lt;/li&gt;
+  &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;name=SampleRecording,&lt;/code&gt; - assigning name can help to dump the correct recording using &lt;code class=&quot;highlighter-rouge&quot;&gt;jcmd &amp;lt;pid&amp;gt; JFR.dump name=SampleRecording&lt;/code&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;settings=default,&lt;/code&gt; - path to setting file, which instructs JFR what kind of events we care about. We will have to make our own to profile memory, see below, however &lt;code class=&quot;highlighter-rouge&quot;&gt;default&lt;/code&gt; is very low overhead and can be safely run in production continuously&lt;/li&gt;
+  &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;disk=false&lt;/code&gt; - do not write recordings immediately to disk. This makes sense for continuous recording when we want to periodically dump ourselves&lt;/li&gt;
+  &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;dumponexit=true,&lt;/code&gt; - dump sampling data if JVM crashes unexpectedly&lt;/li&gt;
+  &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;maxage=1h&lt;/code&gt; - maximum length of sampling data to be kept in buffer&lt;/li&gt;
+  &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;-Xlog:jfr*&lt;/code&gt; - log out JFR events for the curious&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;2 settings files, that come by default with jdk do not collect memory data. Let’s tweak them using &lt;a href=&quot;https://jdk.java.net/jmc/&quot;&gt;JDK Mission Control app&lt;/a&gt;, which we also will need to analyze recording data later. You may want to download build from &lt;a href=&quot;https://adoptopenjdk.net/jmc.html&quot;&gt;OpenJDK&lt;/a&gt;, if you, like me have problems with Live Object histogram rendering. To do so, open Window -&amp;gt; Flight Recording Template Manager and duplicate &lt;code class=&quot;highlighter-rouge&quot;&gt;&amp;lt;jdk directory&amp;gt;/lib/jfr/default.jfc&lt;/code&gt;. Then change “Memory Leak Detection” to “Object types + Allocation Stack Traces + Path to GC Root”. Export this file and specify its location using &lt;code class=&quot;highlighter-rouge&quot;&gt;settings&lt;/code&gt; option above. Because we do not alter memory profiling options, the extra overhead should not be too big, however, be careful and measure if you plan to use this in production.&lt;/p&gt;
+
+&lt;p&gt;Once we have a profile ready (&lt;a href=&quot;https://github.com/romanmarkunas-com/0010-memory-optimization/blob/3550717a4e365a87f4000c6ea703a2c4f3d847d1/src/test/java/com/romanmarkunas/blog/memory/OrderStoreMainTest.java#L95&quot;&gt;see example 5 for full option list&lt;/a&gt;) we can drag-and-drop it into JMC and inspect. We are interested primarily in “Live Objects” section (if you can’t see histogram with live objects on the top, try pulling top of table down):&lt;/p&gt;
+
+&lt;figure class=&quot;caption&quot;&gt;
+    &lt;img src=&quot;/images/posts/0010-memory/example5-live-objects-emphasis.png&quot; alt=&quot;Sampled live objects&quot; /&gt;
+    
+    &lt;figcaption class=&quot;caption-text&quot;&gt;Sampled live objects&lt;/figcaption&gt; 
+    
+&lt;/figure&gt;
+
+&lt;p&gt;This is a list of sampled objects for a period of time encircled with red. The total count will be much less than actual allocation count, but statistically it would be a representative sample of objects allocated and still alive. The samples are taken from TLAB every time it is filled and JVM assigns another TLAB to a thread. The exact mechanism how samples are selected from TLAB is described &lt;a href=&quot;http://hirt.se/blog/?p=381&quot;&gt;here - for general sampling approach&lt;/a&gt; and &lt;a href=&quot;http://hirt.se/blog/?p=1055&quot;&gt;here - for Old Object Sample event&lt;/a&gt;.&lt;/p&gt;
+
+&lt;p&gt;What we can tell from that list is that all these object were still alive at the point when record was taken (JVM crash in our case), therefore some of these objects are candidates for memory leak/memory optimisation. We can find out which part of the code retain them by tracing allocation StackTrace in the bottom section and looking through code where these new objects were stored afterwards. In our case we can see that lots of &lt;code class=&quot;highlighter-rouge&quot;&gt;String&lt;/code&gt; and &lt;code class=&quot;highlighter-rouge&quot;&gt;HashMap&lt;/code&gt; internal objects are allocated and retained by &lt;code class=&quot;highlighter-rouge&quot;&gt;Order&lt;/code&gt; objects.&lt;/p&gt;
+
+&lt;p&gt;One can notice that overall number of samples is quite low. The reason is that samples are chosen once TLAB is full and in this case TLAB size is relatively big to overall heap size (64 megabytes), hence small amount of TLABs and samples. By forcing smaller TLAB we can get more samples (&lt;a href=&quot;https://github.com/romanmarkunas-com/0010-memory-optimization/blob/3550717a4e365a87f4000c6ea703a2c4f3d847d1/src/test/java/com/romanmarkunas/blog/memory/OrderStoreMainTest.java#L124&quot;&gt;example 7&lt;/a&gt;).&lt;/p&gt;
+
+&lt;p&gt;Another useful section can be “TLAB Allocations”, especially if you think you allocate too many big objects, that do not fit TLAB. To have that section populated, we must change “Memory Profiling” configuration to “Object Allocation and Promotion”. Or just use memory-all.jfc provided with example code.&lt;/p&gt;
+
+&lt;p&gt;Overall we can reconstruct quite similar picture to what we had when looking at the heap dump. It is bit more involved as we deal with sampled data and need more manual tracing, however we do not pay penalty of increased latency.&lt;/p&gt;
+
+&lt;h2&gt;Intermission&lt;/h2&gt;
+
+&lt;p&gt;In this part we have covered a few ways to determine what data is taking heap space. We have not covered probing here, as probing gives diminishing returns when we talk about heap occupation. In the &lt;a href=&quot;/performance/2020/07/01/0011-performance-reducing-jvm-memory-footprint-2-optimizing/&quot;&gt;second part&lt;/a&gt; we will take a look at what can be done to reduce heap usage by our sample program.&lt;/p&gt;
+</description>
+                <pubDate>Wed, 01 Jul 2020 00:00:00 +0100</pubDate>
+                <link>https://romanmarkunas.com/performance/2020/07/01/0010-performance-reducing-jvm-memory-footprint-1-profile/</link>
+                <guid isPermaLink="true">https://romanmarkunas.com/performance/2020/07/01/0010-performance-reducing-jvm-memory-footprint-1-profile/</guid>
+                
+                <category>performance</category>
+                
+                <category>java</category>
+                
+                <category>memory</category>
+                
+            </item>
         
             <item>
                 <title>Jackson mix-ins</title>
@@ -1169,16 +1627,6 @@ Fiber execution took 1661 ms
                 <category>non-blocking IO</category>
                 
                 <category>quasar</category>
-                
-            </item>
-        
-            <item>
-                <title>Hello World!</title>
-                <description>&lt;p&gt;Well, I’ve finally made it! Every big boy must have a blog they say, and now I have one as well. Let’s see how it goes…&lt;/p&gt;
-</description>
-                <pubDate>Sat, 03 Feb 2018 00:00:00 +0000</pubDate>
-                <link>https://romanmarkunas.com/uncategorized/2018/02/03/0001-uncategorized-hello-world/</link>
-                <guid isPermaLink="true">https://romanmarkunas.com/uncategorized/2018/02/03/0001-uncategorized-hello-world/</guid>
                 
             </item>
         

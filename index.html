@@ -88,6 +88,82 @@
     <article class="post">
         <header class="post-header">
             <div class="post-header-wrap">
+                <h2 class="post-title outer"><a href="/performance/2020/07/01/0011-performance-reducing-jvm-memory-footprint-2-optimizing/" rel="bookmark">Reducing JVM heap size, part 2: Optimizing</a></h2>
+            </div>
+        </header><!-- .post-header -->
+        <div class="post-content inner-small outer">
+            <time class="published" datetime="2020-07-01">2020-07-01</time><span class="reading-time" title="Estimated read time">
+  
+  
+    	&mdash; 11 min read
+  
+</span>
+
+
+            <br>
+
+            
+                
+                    <a href="/tags/index.html#performance" rel="tag" id="a-post-tag">#performance</a>
+                
+                    <a href="/tags/index.html#java" rel="tag" id="a-post-tag">#java</a>
+                
+                    <a href="/tags/index.html#memory" rel="tag" id="a-post-tag">#memory</a>
+                
+                <br>
+            
+            <br>
+
+            
+                <p>In this article we will look at different ways to figure out and fix unnecessary memory consumption by JVM. This is useful for JVM applications that store huge amount of data in memory and can help avoid OutOfMemoryError if application data cannot be partitioned and scaled horizontally.</p>
+
+<p>In part 2, we will take a look on couple of techniques used to reduce JVM heap size. 
+                <p class="read-more"><a href="/performance/2020/07/01/0011-performance-reducing-jvm-memory-footprint-2-optimizing/" class="button">Read more</a></p>
+            
+        </div><!-- .post-content -->
+    </article><!-- .post -->
+    
+    <article class="post">
+        <header class="post-header">
+            <div class="post-header-wrap">
+                <h2 class="post-title outer"><a href="/performance/2020/07/01/0010-performance-reducing-jvm-memory-footprint-1-profile/" rel="bookmark">Reducing JVM heap size, part 1: Profiling</a></h2>
+            </div>
+        </header><!-- .post-header -->
+        <div class="post-content inner-small outer">
+            <time class="published" datetime="2020-07-01">2020-07-01</time><span class="reading-time" title="Estimated read time">
+  
+  
+    	&mdash; 14 min read
+  
+</span>
+
+
+            <br>
+
+            
+                
+                    <a href="/tags/index.html#performance" rel="tag" id="a-post-tag">#performance</a>
+                
+                    <a href="/tags/index.html#java" rel="tag" id="a-post-tag">#java</a>
+                
+                    <a href="/tags/index.html#memory" rel="tag" id="a-post-tag">#memory</a>
+                
+                <br>
+            
+            <br>
+
+            
+                <p>In this series we will look at different ways to figure out and fix unnecessary memory consumption by JVM. This is useful for JVM applications that store huge amount of data in memory and can help avoid OutOfMemoryError if application data cannot be partitioned and scaled horizontally.</p>
+
+<p>In part 1, let’s take a look on how to identify which objects are responsible for increased heap size. 
+                <p class="read-more"><a href="/performance/2020/07/01/0010-performance-reducing-jvm-memory-footprint-1-profile/" class="button">Read more</a></p>
+            
+        </div><!-- .post-content -->
+    </article><!-- .post -->
+    
+    <article class="post">
+        <header class="post-header">
+            <div class="post-header-wrap">
                 <h2 class="post-title outer"><a href="/protocols/2020/06/03/0009-protocols-jackson-mixins/" rel="bookmark">Jackson mix-ins</a></h2>
             </div>
         </header><!-- .post-header -->
@@ -212,85 +288,11 @@ impossible to annotate imported class.</p>
         </div><!-- .post-content -->
     </article><!-- .post -->
     
-    <article class="post">
-        <header class="post-header">
-            <div class="post-header-wrap">
-                <h2 class="post-title outer"><a href="/messaging/2018/10/01/0006-messaging-kafka-in-practice-1-producer/" rel="bookmark">Kafka transactions in practice 1: Producer</a></h2>
-            </div>
-        </header><!-- .post-header -->
-        <div class="post-content inner-small outer">
-            <time class="published" datetime="2018-10-01">2018-10-01</time><span class="reading-time" title="Estimated read time">
-  
-  
-    	&mdash; 7 min read
-  
-</span>
-
-
-            <br>
-
-            
-                
-                    <a href="/tags/index.html#messaging" rel="tag" id="a-post-tag">#messaging</a>
-                
-                    <a href="/tags/index.html#java" rel="tag" id="a-post-tag">#java</a>
-                
-                    <a href="/tags/index.html#kafka" rel="tag" id="a-post-tag">#kafka</a>
-                
-                <br>
-            
-            <br>
-
-            
-                <p>This post will highlight some practical aspects of using kafka transactions. I will not dive deep into theory on how Kafka transactions are implemented. Instead, let’s discuss main “gotchas” someone could encounter when trying to use Kafka transactions in production first time.</p>
-
-
-                <p class="read-more"><a href="/messaging/2018/10/01/0006-messaging-kafka-in-practice-1-producer/" class="button">Read more</a></p>
-            
-        </div><!-- .post-content -->
-    </article><!-- .post -->
-    
-    <article class="post">
-        <header class="post-header">
-            <div class="post-header-wrap">
-                <h2 class="post-title outer"><a href="/core-java/2018/10/01/0005-core-java-random/" rel="bookmark">Notes on Java Random</a></h2>
-            </div>
-        </header><!-- .post-header -->
-        <div class="post-content inner-small outer">
-            <time class="published" datetime="2018-10-01">2018-10-01</time><span class="reading-time" title="Estimated read time">
-  
-  
-    	&mdash; 5 min read
-  
-</span>
-
-
-            <br>
-
-            
-                
-                    <a href="/tags/index.html#core+java" rel="tag" id="a-post-tag">#core java</a>
-                
-                    <a href="/tags/index.html#java" rel="tag" id="a-post-tag">#java</a>
-                
-                <br>
-            
-            <br>
-
-            
-                <p>This article is inspired by Monty-Hall problem/paradox. Now I found this paradox disturbing initially (this is why it’s paradox, wink…), and decided to quickly model it to validate for myself. That brought idea of writing up all I know about Java Random API in this article.</p>
-
-
-                <p class="read-more"><a href="/core-java/2018/10/01/0005-core-java-random/" class="button">Read more</a></p>
-            
-        </div><!-- .post-content -->
-    </article><!-- .post -->
-    
     
     <nav class="pagination">
         <h2 class="screen-reader-text">Posts navigation</h2>
         
-        <span class="page-number">Page 1 of 2</span>
+        <span class="page-number">Page 1 of 3</span>
         
         <a href="/blog/page2/"
             class="older-posts button button-icon button-fill-horz"><span class="screen-reader-text">Older Posts</span><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M8.333 1l-2.585 2.585 8.396 8.415-8.396 8.415 2.585 2.585 11-11z"></path></svg></a>
@@ -318,15 +320,15 @@ impossible to annotate imported class.</p>
         <h2 class="widget-title line-accent">Latest Posts</h2>
         <ul class="recent-posts">
             
+            <li class="recent-item"><a href="/performance/2020/07/01/0011-performance-reducing-jvm-memory-footprint-2-optimizing/">Reducing JVM heap size, part 2: Optimizing</a> <span>July 1, 2020</span></li>
+            
+            <li class="recent-item"><a href="/performance/2020/07/01/0010-performance-reducing-jvm-memory-footprint-1-profile/">Reducing JVM heap size, part 1: Profiling</a> <span>July 1, 2020</span></li>
+            
             <li class="recent-item"><a href="/protocols/2020/06/03/0009-protocols-jackson-mixins/">Jackson mix-ins</a> <span>June 3, 2020</span></li>
             
             <li class="recent-item"><a href="/microservices/2018/11/15/0008-microservices-dropwizard-101/">Getting started with Dropwizard</a> <span>November 15, 2018</span></li>
             
             <li class="recent-item"><a href="/build/2018/11/13/0007-build-gradle-fat-jars/">Creating fat JARs with gradle</a> <span>November 13, 2018</span></li>
-            
-            <li class="recent-item"><a href="/messaging/2018/10/01/0006-messaging-kafka-in-practice-1-producer/">Kafka transactions in practice 1: Producer</a> <span>October 1, 2018</span></li>
-            
-            <li class="recent-item"><a href="/core-java/2018/10/01/0005-core-java-random/">Notes on Java Random</a> <span>October 1, 2018</span></li>
             
         </ul><!-- .recent-posts -->
     </section><!-- .widget-recent-posts -->
@@ -337,7 +339,7 @@ impossible to annotate imported class.</p>
     <section class="widget widget-tags">
         <h2 class="widget-title line-accent">Tags</h2>
         <div class="tagcloud">
-            <a href="/tags/#build">build</a><a href="/tags/#concurrency">concurrency</a><a href="/tags/#core+java">core java</a><a href="/tags/#coroutines">coroutines</a><a href="/tags/#design">design</a><a href="/tags/#dropwizard">dropwizard</a><a href="/tags/#gradle">gradle</a><a href="/tags/#jackson">jackson</a><a href="/tags/#java">java</a><a href="/tags/#kafka">kafka</a><a href="/tags/#low+latency">low latency</a><a href="/tags/#messaging">messaging</a><a href="/tags/#microservices">microservices</a><a href="/tags/#multithreading">multithreading</a><a href="/tags/#non-blocking+IO">non-blocking IO</a><a href="/tags/#protocols">protocols</a><a href="/tags/#quasar">quasar</a>
+            <a href="/tags/#build">build</a><a href="/tags/#concurrency">concurrency</a><a href="/tags/#core+java">core java</a><a href="/tags/#coroutines">coroutines</a><a href="/tags/#design">design</a><a href="/tags/#dropwizard">dropwizard</a><a href="/tags/#gradle">gradle</a><a href="/tags/#jackson">jackson</a><a href="/tags/#java">java</a><a href="/tags/#kafka">kafka</a><a href="/tags/#low+latency">low latency</a><a href="/tags/#memory">memory</a><a href="/tags/#messaging">messaging</a><a href="/tags/#microservices">microservices</a><a href="/tags/#multithreading">multithreading</a><a href="/tags/#non-blocking+IO">non-blocking IO</a><a href="/tags/#performance">performance</a><a href="/tags/#protocols">protocols</a><a href="/tags/#quasar">quasar</a>
         </div><!-- .tagcloud -->
     </section><!-- .widget -->
 

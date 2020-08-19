@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Reducing JVM heap size, part 1: Profiling</title> 
+    <meta name="description" content="Step by step guide on how to reduce JVM memory footprint. Part 1: identifying retained memory causes.">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link rel="shortcut icon" href="/favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:400,400i,700,700i&display=swap" />
+    <link rel="stylesheet" href="/css/main.css" />
+    <link rel="canonical" href="https://romanmarkunas.com/performance/2020/07/01/0010-performance-reducing-jvm-memory-footprint-1-profile/">
+    <link rel="alternate" type="application/rss+xml" title="Roman Markunas (Romans Markuns) blog Feed" href="https://romanmarkunas.com/feed.xml">
+    
+    <script data-ad-client="ca-pub-9488600968816185" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+    
+</head>
+<body onload="transformSyntaxHiglightsBecausePygmentsJavaLexerIsRubbish();">
+    <div class="site">
+        <nav id="top" class="site-nav outer" aria-label="Main Menu">
+    <div class="inner">
+        <div class="site-nav-inside">
+
+            <button id="menu-show" class="js-menu-toggle"><span class="icon icon-menu"
+                    aria-hidden="true"></span>Menu</button>
+
+            <div class="menu-panel">
+                <div class="menu-panel-scrollable">
+                    <div class="menu-panel-top">
+                        <button id="menu-hide" class="js-menu-toggle button button-icon button-fill-horz"><span class="icon icon-close" aria-hidden="true"></span><span class="screen-reader-text">Close</span></button>
+                    </div>
+                    <ul class="menu">
+                        
+                        
+                        
+                        <li class="menu-item ">
+                            <a href="/">Home</a>
+                        </li>
+                        
+                        
+                        
+                        <li class="menu-item ">
+                            <a href="/tags/">Archive</a>
+                        </li>
+                        
+                    </ul>
+                </div>
+            </div><!-- .menu-panel -->
+
+            <ul class="actions">
+                <li>
+                    <a class="button button-icon button-fill-horz"
+                       href="https://www.linkedin.com/in/romansmarkuns"><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg><span class="screen-reader-text">LinkedIn</span></a>
+                </li>
+                <li>
+                    <a class="button button-icon button-fill-horz"
+                       href="https://github.com/romanmarkunas"><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg><span class="screen-reader-text">GitHub</span></a>
+                </li>
+                <li>
+                    <a class="button button-icon button-fill-horz"
+                        href="/feed.xml"><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M19.199 24C19.199 13.467 10.533 4.8 0 4.8V0c13.165 0 24 10.835 24 24h-4.801zM3.291 17.415c1.814 0 3.293 1.479 3.293 3.295 0 1.813-1.485 3.29-3.301 3.29C1.47 24 0 22.526 0 20.71s1.475-3.294 3.291-3.295zM15.909 24h-4.665c0-6.169-5.075-11.245-11.244-11.245V8.09c8.727 0 15.909 7.184 15.909 15.91z"/></svg><span class="screen-reader-text">Subscribe</span></a>
+                </li>
+            </ul><!-- .actions -->
+
+        </div><!-- .site-nav-inside -->
+    </div><!-- .inner -->
+</nav><!-- .site-nav -->
+
+        <header class="site-alto-header outer">
+    <div class="inner">
+        <div class="site-header-inside">
+
+<!--            -->
+
+        </div><!-- .site-header-inside -->
+    </div><!-- .inner -->
+</header><!-- .site-header -->
+
+        <div class="site-content outer">
+            <div class="inner">
+                <main class="site-main">
+                    <div class="primary">
+    <article class="post post-full">
+        <header class="post-header">
+            <div class="post-header-wrap">
+                <h1 class="post-title outer">Reducing JVM heap size, part 1: Profiling</h1>
+            </div>
+        </header><!-- .post-header -->
+        <div class="post-content inner-small outer">
+            <time class="published" datetime="">2020-07-01</time><span class="reading-time" title="Estimated read time">
+  
+  
+    	&mdash; 14 min read
+  
+</span>
+
+
+            <br>
+
+            
+            
+            <a href="/tags/index.html#performance" rel="tag" id="a-post-tag">#performance</a>
+            
+            <a href="/tags/index.html#java" rel="tag" id="a-post-tag">#java</a>
+            
+            <a href="/tags/index.html#memory" rel="tag" id="a-post-tag">#memory</a>
+            
+            <br>
+            
+            <br>
+
+            <p>In this series we will look at different ways to figure out and fix unnecessary memory consumption by JVM. This is useful for JVM applications that store huge amount of data in memory and can help avoid OutOfMemoryError if application data cannot be partitioned and scaled horizontally.</p>
+
+<p>In part 1, let’s take a look on how to identify which objects are responsible for increased heap size. <!--more--> In <a href="/performance/2020/07/01/0011-performance-reducing-jvm-memory-footprint-2-optimizing/">part 2</a>, I’ll list a few optimization techniques that should help reduce heap size.</p>
+
+<p>We will not look at memory leak detection in this post, however most profiling methods in this article will be useful in finding those too. We will also not focus on garbage-free approach to Java code. Let me know if you’re interested in these topics as well.</p>
+
+<p>Source code of examples can be found <a href="https://github.com/romanmarkunas-com/0010-memory-optimization">here</a>.</p>
+
+<h2>Example application</h2>
+
+<p>This corresponds to <a href="https://github.com/romanmarkunas-com/0010-memory-optimization/blob/3550717a4e365a87f4000c6ea703a2c4f3d847d1/src/test/java/com/romanmarkunas/blog/memory/OrderStoreMainTest.java#L49">example 1</a>.</p>
+
+<p>To emulate application with long-term memory store, we will launch separate JVM and we are going to feed it orders as such:</p>
+
+<div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kd">public</span> <span class="kd">final</span> <span class="kd">class</span> <span class="nc">Order</span> <span class="o">{</span>
+
+    <span class="kd">private</span> <span class="kd">final</span> <span class="nc">String</span> <span class="n">id</span><span class="o">;</span>
+    <span class="kd">private</span> <span class="kd">final</span> <span class="nc">String</span> <span class="n">user</span><span class="o">;</span>
+    <span class="kd">private</span> <span class="kd">final</span> <span class="nc">Integer</span> <span class="n">articleNr</span><span class="o">;</span>
+    <span class="kd">private</span> <span class="kd">final</span> <span class="kt">int</span> <span class="n">count</span><span class="o">;</span>
+    <span class="kd">private</span> <span class="kd">final</span> <span class="kt">int</span> <span class="n">price</span><span class="o">;</span>
+    <span class="kd">private</span> <span class="kd">final</span> <span class="nc">String</span> <span class="n">address</span><span class="o">;</span>
+
+    <span class="c1">// rest of class omitted for clarity</span>
+<span class="o">}</span>
+</code></pre></div></div>
+
+<p>To compare runs of different implementations instances of <code class="highlighter-rouge">Order</code> are created deterministically by seeding Random with the same seed.</p>
+
+<p>To represent real-life data scenario we will take Alaska, USA address dataset collected by <a href="http://openaddresses.io">OpenAddresses</a>, courtesy of <a href="https://moa-muniorg.hub.arcgis.com/pages/data">Municipality of Anchorage</a>.</p>
+
+<p>Orders are sent via stdin pipe, read by <code class="highlighter-rouge">Scanner</code> and stored in example application in 2 maps, keyed by <code class="highlighter-rouge">id</code> and <code class="highlighter-rouge">user</code>:</p>
+
+<div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nc">String</span> <span class="n">received</span> <span class="o">=</span> <span class="n">scanner</span><span class="o">.</span><span class="na">nextLine</span><span class="o">();</span>
+<span class="nc">Order</span> <span class="n">order</span> <span class="o">=</span> <span class="n">mapper</span><span class="o">.</span><span class="na">readValue</span><span class="o">(</span><span class="n">received</span><span class="o">,</span> <span class="nc">Order</span><span class="o">.</span><span class="na">class</span><span class="o">);</span>
+<span class="n">ordersById</span><span class="o">.</span><span class="na">put</span><span class="o">(</span><span class="n">order</span><span class="o">.</span><span class="na">getId</span><span class="o">(),</span> <span class="n">order</span><span class="o">);</span>
+<span class="n">ordersByUser</span>
+        <span class="o">.</span><span class="na">computeIfAbsent</span><span class="o">(</span><span class="n">order</span><span class="o">.</span><span class="na">getUser</span><span class="o">(),</span> <span class="n">key</span> <span class="o">-&gt;</span> <span class="k">new</span> <span class="nc">ArrayList</span><span class="o">&lt;&gt;())</span>
+        <span class="o">.</span><span class="na">add</span><span class="o">(</span><span class="n">order</span><span class="o">);</span>
+</code></pre></div></div>
+
+<p>Running our memory hungry application in JVM with <code class="highlighter-rouge">-Xmx64m</code>` we get:</p>
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>Total orders: 204785
+Total users: 54643
+Exception in thread "main" java.lang.OutOfMemoryError: Java heap space
+	at java.base/java.io.Reader.read(Reader.java:188)
+	at java.base/java.util.Scanner.readInput(Scanner.java:882)
+	at java.base/java.util.Scanner.findWithinHorizon(Scanner.java:1796)
+	at java.base/java.util.Scanner.hasNextLine(Scanner.java:1610)
+	at com.romanmarkunas.blog.memory.example1.OrderStoreMain.main(OrderStoreMain.java:19)
+</code></pre></div></div>
+
+<p>Let’s pretend we don’t know what is the most memory hungry part of application and see how we can find out biggest memory consumers within JVM.</p>
+
+<h2>Profiling - memory release pattern</h2>
+
+<blockquote>
+  <p>Much of the profiling we do in this section relies on production-like data for real system. This is why it is highly advised to have most of mentioned JVM options enabled proactively for production system to properly monitor memory consumption.</p>
+</blockquote>
+
+<p>First we need to identify what is the source of <code class="highlighter-rouge">OutOfMemoryError</code>. Potentially we could have a current thread stack allocating and holding too many objects as part of it’s immediate operation (e.g. loading a huge file into memory in one go), so there might be problem with sizing JVM memory or algorithm. Alternatively, if we see a “sawtooth” pattern we could conclude that memory is being held long term. This corresponds to <a href="https://github.com/romanmarkunas-com/0010-memory-optimization/blob/3550717a4e365a87f4000c6ea703a2c4f3d847d1/src/test/java/com/romanmarkunas/blog/memory/OrderStoreMainTest.java#L59">example 2</a>.</p>
+
+<p>Running with <code class="highlighter-rouge">-Xlog:gc</code> (or <code class="highlighter-rouge">-verbose:gc</code> prior to Java 9), would give us following (<code class="highlighter-rouge">-XX:+PrintGCDetails</code> omitted for clarity, run <code class="highlighter-rouge">java -Xlog:help</code> for more options on logging post Java 8):</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>[0.008s][info][gc] Using G1
+[0.455s][info][gc] GC(0) Pause Young (Normal) (G1 Evacuation Pause) 24M-&gt;3M(64M) 5.136ms
+[0.675s][info][gc] GC(1) Pause Young (Normal) (G1 Evacuation Pause) 38M-&gt;7M(64M) 18.182ms
+...
+[2.021s][info][gc] GC(77) To-space exhausted
+[2.021s][info][gc] GC(77) Pause Young (Normal) (G1 Evacuation Pause) 62M-&gt;61M(64M) 2.543ms
+[2.027s][info][gc] GC(78) To-space exhausted
+[2.027s][info][gc] GC(78) Pause Young (Normal) (G1 Evacuation Pause) 63M-&gt;63M(64M) 3.311ms
+[2.102s][info][gc] GC(79) Pause Full (G1 Evacuation Pause) 63M-&gt;54M(64M) 74.398ms
+...
+[7.532s][info][gc] GC(171) Pause Full (G1 Evacuation Pause) 63M-&gt;63M(64M) 119.835ms
+[7.532s][info][gc] GC(172) Pause Young (Normal) (G1 Evacuation Pause) 63M-&gt;63M(64M) 0.231ms
+[7.655s][info][gc] GC(173) Pause Full (G1 Evacuation Pause) 63M-&gt;62M(64M) 122.730ms
+// OutOfMemoryError here
+</code></pre></div></div>
+
+<p>Just as interesting side note - OutOfMemoryError happens while heap has little space left. Even though G1 is a compacting collector, slight memory fragmentation occurs (For example, each object from reclaimed region is too big to fit in left free space of almost full regions. Another case would be when, any region is taken by humongous object -  more reading <a href="https://docs.oracle.com/javase/8/docs/technotes/guides/vm/gctuning/g1_gc_tuning.html#humongous">here</a>).</p>
+
+<p>Observing used heap size after each collection (number just after <code class="highlighter-rouge">-&gt;</code>), we can see that it is always growing, creating infamous saw-tooth pattern. We can also observe (with <code class="highlighter-rouge">-Xlog:gc*</code>) that G1 garbage collector shrunk young generation to single region (1024K) by the time of crash:</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>[4.714s][info][gc,heap,exit   ] Heap
+[4.714s][info][gc,heap,exit   ]  garbage-first heap   total 65536K, used 64505K [0x00000000fc000000, 0x0000000100000000)
+[4.714s][info][gc,heap,exit   ]   region size 1024K, 1 young (1024K), 0 survivors (0K)
+</code></pre></div></div>
+
+<p>This suggests we have either too much data or memory leak. Next, let’s find out what exactly fills the memory.</p>
+
+<h2>Profiling - heap dumps</h2>
+
+<p>Let’s start with easiest approach, which is option <code class="highlighter-rouge">-XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=dump.hprof</code>. This will give use heap dump in binary format. Now to make sense of it, we need to open with any useful dump analysis tool. I do not recommend VisualVM, because it’s very bad in guessing object sizes, and for our particular example it would show retained sizes bigger than heap itself. It also does not include thread frames in dominator lists, which often is helpful. For this example I’ll use <a href="https://www.eclipse.org/mat/downloads.php">Eclipse MAT</a>, which is a free, standalone, feature-full and precise memory analyser tool.</p>
+
+<p>Once we open heap dump (<a href="https://github.com/romanmarkunas-com/0010-memory-optimization/blob/3550717a4e365a87f4000c6ea703a2c4f3d847d1/src/test/java/com/romanmarkunas/blog/memory/OrderStoreMainTest.java#L71">example 3</a>), it’s quite obvious to figure out where most JVM memory is consumed:</p>
+
+<figure class="caption">
+    <img src="/images/posts/0010-memory/example3-overview.png" alt="Obvious offender" />
+    
+    <figcaption class="caption-text">Obvious offender</figcaption> 
+    
+</figure>
+
+<p>If we open <strong>dominator tree</strong> and sort by retained heap, we will see why it is the case:</p>
+
+<figure class="caption">
+    <img src="/images/posts/0010-memory/example3-dominators.png" alt="Dominating Thread" />
+    
+    <figcaption class="caption-text">Dominating Thread</figcaption> 
+    
+</figure>
+
+<p>You may wonder why <code class="highlighter-rouge">Order</code> objects in dominator tree are children of <code class="highlighter-rouge">Thread</code> instead of <code class="highlighter-rouge">HashMap</code> and why retained heap of both <code class="highlighter-rouge">HashMap</code>’s is much smaller than total retained heap. The reason is that all <code class="highlighter-rouge">Order</code> objects are retained by both maps, so if any single map becomes unreachable, none of <code class="highlighter-rouge">Order</code> objects would be collected. However, if <code class="highlighter-rouge">Thread</code> becomes unreachable, both <code class="highlighter-rouge">HashMap</code> and in turn all <code class="highlighter-rouge">Order</code>  will be eligible for garbage collection.</p>
+
+<blockquote>
+  <p>Retained heap of the object is total memory that would be reclaimed by GC if this object would become unreachable.</p>
+</blockquote>
+
+<p>This is exactly reason why dominator trees are not useful to figure out memory consumption in real-life application. Big data structures like caches are often shared between components and referenced via multiple GC roots, therefore they do not appear in dominator trees. To demonstrate this we can put our order map as a static variable (<a href="https://github.com/romanmarkunas-com/0010-memory-optimization/blob/3550717a4e365a87f4000c6ea703a2c4f3d847d1/src/test/java/com/romanmarkunas/blog/memory/OrderStoreMainTest.java#L83">example 4</a>):</p>
+
+<div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kd">public</span> <span class="kd">class</span> <span class="nc">TwoGCRootsOrderStoreMain</span> <span class="o">{</span>
+
+    <span class="kd">private</span> <span class="kd">static</span> <span class="nc">Map</span><span class="o">&lt;</span><span class="nc">String</span><span class="o">,</span> <span class="nc">Order</span><span class="o">&gt;</span> <span class="n">ordersById</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">HashMap</span><span class="o">&lt;&gt;();</span>
+
+    <span class="kd">public</span> <span class="kd">static</span> <span class="kt">void</span> <span class="nf">main</span><span class="o">(</span><span class="nc">String</span><span class="o">[]</span> <span class="n">args</span><span class="o">)</span> <span class="o">{</span>
+        <span class="nc">Map</span><span class="o">&lt;</span><span class="nc">String</span><span class="o">,</span> <span class="nc">Order</span><span class="o">&gt;</span> <span class="n">ordersById</span> <span class="o">=</span> <span class="nc">TwoGCRootsOrderStoreMain</span><span class="o">.</span><span class="na">ordersById</span><span class="o">;</span>
+        <span class="c1">// rest of code omitted</span>
+    <span class="o">}</span>
+<span class="o">}</span>
+</code></pre></div></div>
+
+<p>and the dominator tree of that would look like:</p>
+
+<figure class="caption">
+    <img src="/images/posts/0010-memory/example4-dominators.png" alt="No clear winner" />
+    
+    <figcaption class="caption-text">No clear winner</figcaption> 
+    
+</figure>
+
+<p>which is not immediately helpful - top dominators take 25% of memory, while we clearly filled whole heap. In cases like above, <strong>histograms</strong> are more useful, so lets create one and sort items by retained heap size:</p>
+
+<figure class="caption">
+    <img src="/images/posts/0010-memory/example3-histo.png" alt="Object histogram" />
+    
+    <figcaption class="caption-text">Object histogram</figcaption> 
+    
+</figure>
+
+<p>Here we can see a huge amount of <code class="highlighter-rouge">Order</code> objects and, assuming it is our normal production scenario, we have found our offender.</p>
+
+<blockquote>
+  <p>Histograms can be useful in finding memory/resource leaks in conjunction with other metric collection tools for your system. For example, if you publish count of current active TCP connections via metrics interface, but then you find out that number of <code class="highlighter-rouge">Socket</code> objects in heap is much bigger, it is an obvious resource leak.</p>
+</blockquote>
+
+<p>For a typical heap it is very likely that top objects would be <code class="highlighter-rouge">byte[]</code>, <code class="highlighter-rouge">String</code>, <code class="highlighter-rouge">HashMap$Node</code>, <code class="highlighter-rouge">Object[]</code> and <code class="highlighter-rouge">ConcurrentHashMap$Segment</code>. And in bigger application  it’s typically not obvious what is holding all these objects. To find out right click on desired class object and select “Immediate dominators”. Our example for <code class="highlighter-rouge">String</code> would give:</p>
+
+<figure class="caption">
+    <img src="/images/posts/0010-memory/example3-string-dominators.png" alt="String dominators" />
+    
+    <figcaption class="caption-text">String dominators</figcaption> 
+    
+</figure>
+
+<p>which tells us, that most <code class="highlighter-rouge">String</code> instances are retained through <code class="highlighter-rouge">Order</code> objects or a GC root, which is main <code class="highlighter-rouge">Thread</code>. Also in histogram view: right-click on <code class="highlighter-rouge">String</code> -&gt; “Merge shortest paths to GC roots”, would give:</p>
+
+<figure class="caption">
+    <img src="/images/posts/0010-memory/example3-string-roots-0.png" alt="String retain tree up to GC roots" />
+    
+    <figcaption class="caption-text">String retain tree up to GC roots</figcaption> 
+    
+</figure>
+
+<figure class="caption">
+    <img src="/images/posts/0010-memory/example3-string-roots-1.png" alt="Which exact objects retain String" />
+    
+    <figcaption class="caption-text">Which exact objects retain String</figcaption> 
+    
+</figure>
+
+<p>which tell us that <code class="highlighter-rouge">String</code> objects are specifically retained as:</p>
+<ol>
+  <li><code class="highlighter-rouge">Order</code> object fields <code class="highlighter-rouge">user</code> and <code class="highlighter-rouge">address</code>, which in turn are <code class="highlighter-rouge">HashMap$Node</code> values</li>
+  <li><code class="highlighter-rouge">HashMap$Node</code> keys</li>
+</ol>
+
+<p>Again <code class="highlighter-rouge">Order#id</code> is not retaining strings, as collecting order would not result in collection on id <code class="highlighter-rouge">String</code> instance, because it is also retained as <code class="highlighter-rouge">HashMap$Node</code> key. Collecting the whole node, however would cause id to be collected, as both key and value would no longer be reachable.</p>
+
+<p>To obtain heap dump of live process, the recommended tool since Java 9 release is <code class="highlighter-rouge">jmap</code> which is shipped together with JDK, for example <code class="highlighter-rouge">jmap -dump:live,format=b,file=dump.hprof &lt;java-process-pid&gt;</code>. Alternatively, if JVM is launched with <code class="highlighter-rouge">PrintClassHistogram</code> option <code class="highlighter-rouge">kill -QUIT &lt;java-process-pid&gt;</code> will also do it. However, the latter option overrides default behavior of printing thread dump on SIGQUIT).</p>
+
+<h2>Profiling - online profilers</h2>
+
+<p>Analyzing heap dump is great, but not always possible as it causes stop-the-world pause, therefore not applicable when monitoring production systems (heap dumps can induce <strong>very</strong> long pauses). To avoid this we can use online profilers, that collect sample data during runtime. Of course, we don’t get full picture using such method, but it still can give some clues on how application works and narrow the suspect circle.</p>
+
+<p>Let’s take a look at JDK flight recorder, which is free feature of JDKs as of version 11. To get this right we will need to tweak quite a few configuration options to enable continuous recording so that we can periodically dump sample data (another option would be to start recording periodically using <code class="highlighter-rouge">jcmd &lt;PID&gt; JFR.start &lt;all the same otions&gt;</code> command):</p>
+<ol>
+  <li><code class="highlighter-rouge">-XX:+FlightRecorder</code> - this enables JDK flight recorder</li>
+  <li><code class="highlighter-rouge">-XX:FlightRecorderOptions:</code></li>
+  <li><code class="highlighter-rouge">memorysize=5m,</code> - be aware of additional buffer that is required to collect sampling data, with size set here. Enabling JFR would also somewhat expand metaspace and use some extra heap.</li>
+  <li><code class="highlighter-rouge">stackdepth=32</code> - maximum stack depth to walk. Tuning this can help limit sampling overhead, cause some part of the stack might not be interesting, e.g. framewrok/servlet container dispatching</li>
+  <li><code class="highlighter-rouge">-XX:StartFlightRecording:</code> - starts a recording as part of JVM launch</li>
+  <li><code class="highlighter-rouge">name=SampleRecording,</code> - assigning name can help to dump the correct recording using <code class="highlighter-rouge">jcmd &lt;pid&gt; JFR.dump name=SampleRecording</code></li>
+  <li><code class="highlighter-rouge">settings=default,</code> - path to setting file, which instructs JFR what kind of events we care about. We will have to make our own to profile memory, see below, however <code class="highlighter-rouge">default</code> is very low overhead and can be safely run in production continuously</li>
+  <li><code class="highlighter-rouge">disk=false</code> - do not write recordings immediately to disk. This makes sense for continuous recording when we want to periodically dump ourselves</li>
+  <li><code class="highlighter-rouge">dumponexit=true,</code> - dump sampling data if JVM crashes unexpectedly</li>
+  <li><code class="highlighter-rouge">maxage=1h</code> - maximum length of sampling data to be kept in buffer</li>
+  <li><code class="highlighter-rouge">-Xlog:jfr*</code> - log out JFR events for the curious</li>
+</ol>
+
+<p>2 settings files, that come by default with jdk do not collect memory data. Let’s tweak them using <a href="https://jdk.java.net/jmc/">JDK Mission Control app</a>, which we also will need to analyze recording data later. You may want to download build from <a href="https://adoptopenjdk.net/jmc.html">OpenJDK</a>, if you, like me have problems with Live Object histogram rendering. To do so, open Window -&gt; Flight Recording Template Manager and duplicate <code class="highlighter-rouge">&lt;jdk directory&gt;/lib/jfr/default.jfc</code>. Then change “Memory Leak Detection” to “Object types + Allocation Stack Traces + Path to GC Root”. Export this file and specify its location using <code class="highlighter-rouge">settings</code> option above. Because we do not alter memory profiling options, the extra overhead should not be too big, however, be careful and measure if you plan to use this in production.</p>
+
+<p>Once we have a profile ready (<a href="https://github.com/romanmarkunas-com/0010-memory-optimization/blob/3550717a4e365a87f4000c6ea703a2c4f3d847d1/src/test/java/com/romanmarkunas/blog/memory/OrderStoreMainTest.java#L95">see example 5 for full option list</a>) we can drag-and-drop it into JMC and inspect. We are interested primarily in “Live Objects” section (if you can’t see histogram with live objects on the top, try pulling top of table down):</p>
+
+<figure class="caption">
+    <img src="/images/posts/0010-memory/example5-live-objects-emphasis.png" alt="Sampled live objects" />
+    
+    <figcaption class="caption-text">Sampled live objects</figcaption> 
+    
+</figure>
+
+<p>This is a list of sampled objects for a period of time encircled with red. The total count will be much less than actual allocation count, but statistically it would be a representative sample of objects allocated and still alive. The samples are taken from TLAB every time it is filled and JVM assigns another TLAB to a thread. The exact mechanism how samples are selected from TLAB is described <a href="http://hirt.se/blog/?p=381">here - for general sampling approach</a> and <a href="http://hirt.se/blog/?p=1055">here - for Old Object Sample event</a>.</p>
+
+<p>What we can tell from that list is that all these object were still alive at the point when record was taken (JVM crash in our case), therefore some of these objects are candidates for memory leak/memory optimisation. We can find out which part of the code retain them by tracing allocation StackTrace in the bottom section and looking through code where these new objects were stored afterwards. In our case we can see that lots of <code class="highlighter-rouge">String</code> and <code class="highlighter-rouge">HashMap</code> internal objects are allocated and retained by <code class="highlighter-rouge">Order</code> objects.</p>
+
+<p>One can notice that overall number of samples is quite low. The reason is that samples are chosen once TLAB is full and in this case TLAB size is relatively big to overall heap size (64 megabytes), hence small amount of TLABs and samples. By forcing smaller TLAB we can get more samples (<a href="https://github.com/romanmarkunas-com/0010-memory-optimization/blob/3550717a4e365a87f4000c6ea703a2c4f3d847d1/src/test/java/com/romanmarkunas/blog/memory/OrderStoreMainTest.java#L124">example 7</a>).</p>
+
+<p>Another useful section can be “TLAB Allocations”, especially if you think you allocate too many big objects, that do not fit TLAB. To have that section populated, we must change “Memory Profiling” configuration to “Object Allocation and Promotion”. Or just use memory-all.jfc provided with example code.</p>
+
+<p>Overall we can reconstruct quite similar picture to what we had when looking at the heap dump. It is bit more involved as we deal with sampled data and need more manual tracing, however we do not pay penalty of increased latency.</p>
+
+<h2>Intermission</h2>
+
+<p>In this part we have covered a few ways to determine what data is taking heap space. We have not covered probing here, as probing gives diminishing returns when we talk about heap occupation. In the <a href="/performance/2020/07/01/0011-performance-reducing-jvm-memory-footprint-2-optimizing/">second part</a> we will take a look at what can be done to reduce heap usage by our sample program.</p>
+        </div><!-- .post-content -->
+        <footer class="post-footer inner-small outer">
+            <div class="post-share">
+                <span>Share:</span>
+                <a class="button button-icon button-fill-horz"
+                    href="https://twitter.com/intent/tweet?text=Reducing%20JVM%20heap%20size,%20part%201:%20Profiling&amp;url=https://romanmarkunas.com/performance/2020/07/01/0010-performance-reducing-jvm-memory-footprint-1-profile/"
+                    target="_blank" rel="noopener"><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M23.954 4.569a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.691 8.094 4.066 6.13 1.64 3.161a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.061a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.937 4.937 0 004.604 3.417 9.868 9.868 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.054 0 13.999-7.496 13.999-13.986 0-.209 0-.42-.015-.63a9.936 9.936 0 002.46-2.548l-.047-.02z"/></svg><span
+                        class="screen-reader-text">Share on Twitter</span></a>
+                <a class="button button-icon button-fill-horz"
+                    href="https://www.facebook.com/sharer/sharer.php?u=https://romanmarkunas.com/performance/2020/07/01/0010-performance-reducing-jvm-memory-footprint-1-profile/&amp;t=Reducing%20JVM%20heap%20size,%20part%201:%20Profiling"
+                    target="_blank" rel="noopener"><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M23.998 12c0-6.628-5.372-12-11.999-12C5.372 0 0 5.372 0 12c0 5.988 4.388 10.952 10.124 11.852v-8.384H7.078v-3.469h3.046V9.356c0-3.008 1.792-4.669 4.532-4.669 1.313 0 2.686.234 2.686.234v2.953H15.83c-1.49 0-1.955.925-1.955 1.874V12h3.328l-.532 3.469h-2.796v8.384c5.736-.9 10.124-5.864 10.124-11.853z"/></svg><span
+                        class="screen-reader-text">Share on Facebook</span></a>
+            </div>
+<!--            -->
+<!--            <div class="post-tags">-->
+<!--                <span>Tags:</span>-->
+<!--                <a href="/tags/index.html#performance" rel="tag">performance</a><a href="/tags/index.html#java" rel="tag">java</a><a href="/tags/index.html#memory" rel="tag">memory</a>-->
+<!--            </div>-->
+<!--            -->
+        </footer><!-- .post-footer -->
+    </article><!-- .post -->
+    <nav class="post-navigation">
+        <h2 class="screen-reader-text">Read Next</h2>
+        
+        <div class="nav-previous">
+            <div class="nav-inside inner-small outer">
+                
+                <div class="nav-before">Previous</div>
+                <h3 class="nav-title"><a href="/protocols/2020/06/03/0009-protocols-jackson-mixins/">Jackson mix-ins</a>
+                </h3>
+                <div class="nav-date">June 3, 2020</div>
+            </div><!-- .nav-inside -->
+        </div><!-- .nav-previous -->
+        
+        
+        <div class="nav-next">
+            <div class="nav-inside inner-small outer">
+                
+                <div class="nav-before">Next</div>
+                <h3 class="nav-title"><a href="/performance/2020/07/01/0011-performance-reducing-jvm-memory-footprint-2-optimizing/">Reducing JVM heap size, part 2: Optimizing</a></h3>
+                <div class="nav-date">July 1, 2020</div>
+            </div><!-- .nav-inside -->
+        </div><!-- .nav-next -->
+        
+    </nav><!-- .post-navigation -->
+
+    <div class="comments-area">
+        <div class="inner-small outer">
+<!--            <h2 class="comments-title line-accent">Comments</h2>-->
+            <div id="hyvor-talk-view"></div>
+            <script type="text/javascript">
+                var HYVOR_TALK_WEBSITE = 708; // DO NOT CHANGE THIS
+                var HYVOR_TALK_CONFIG = {
+                    url: 'https://romanmarkunas.com/performance/2020/07/01/0010-performance-reducing-jvm-memory-footprint-1-profile/',
+                    id: '/performance/2020/07/01/--0010---performance---reducing-jvm-memory-footprint-1-profile'
+                };
+            </script>
+            <script async type="text/javascript" src="//talk.hyvor.com/web-api/embed"></script>
+
+        </div><!-- .inner-small -->
+    </div><!-- .comments-area -->
+
+</div><!-- .primary -->
+
+<aside class="sidebar">
+
+    <section class="widget widget-text">
+        <h2 class="widget-title line-accent">About</h2>
+        <p style="text-align:justify;">
+            I am Roma, a Java developer focusing on high-throughput
+            systems. This blog is a collection of tech, performance and
+            design tips, broadly covering my experience out in the field.
+        </p>
+    </section><!-- .widget-text -->
+
+    
+
+    
+
+    <section class="widget widget-recent-posts">
+        <h2 class="widget-title line-accent">Latest Posts</h2>
+        <ul class="recent-posts">
+            
+            <li class="recent-item"><a href="/performance/2020/07/01/0011-performance-reducing-jvm-memory-footprint-2-optimizing/">Reducing JVM heap size, part 2: Optimizing</a> <span>July 1, 2020</span></li>
+            
+            <li class="recent-item"><a href="/performance/2020/07/01/0010-performance-reducing-jvm-memory-footprint-1-profile/">Reducing JVM heap size, part 1: Profiling</a> <span>July 1, 2020</span></li>
+            
+            <li class="recent-item"><a href="/protocols/2020/06/03/0009-protocols-jackson-mixins/">Jackson mix-ins</a> <span>June 3, 2020</span></li>
+            
+            <li class="recent-item"><a href="/microservices/2018/11/15/0008-microservices-dropwizard-101/">Getting started with Dropwizard</a> <span>November 15, 2018</span></li>
+            
+            <li class="recent-item"><a href="/build/2018/11/13/0007-build-gradle-fat-jars/">Creating fat JARs with gradle</a> <span>November 13, 2018</span></li>
+            
+        </ul><!-- .recent-posts -->
+    </section><!-- .widget-recent-posts -->
+
+    <!--Create a sorted array of tags-->
+    
+    
+    <section class="widget widget-tags">
+        <h2 class="widget-title line-accent">Tags</h2>
+        <div class="tagcloud">
+            <a href="/tags/#build">build</a><a href="/tags/#concurrency">concurrency</a><a href="/tags/#core+java">core java</a><a href="/tags/#coroutines">coroutines</a><a href="/tags/#design">design</a><a href="/tags/#dropwizard">dropwizard</a><a href="/tags/#gradle">gradle</a><a href="/tags/#jackson">jackson</a><a href="/tags/#java">java</a><a href="/tags/#kafka">kafka</a><a href="/tags/#low+latency">low latency</a><a href="/tags/#memory">memory</a><a href="/tags/#messaging">messaging</a><a href="/tags/#microservices">microservices</a><a href="/tags/#multithreading">multithreading</a><a href="/tags/#non-blocking+IO">non-blocking IO</a><a href="/tags/#performance">performance</a><a href="/tags/#protocols">protocols</a><a href="/tags/#quasar">quasar</a>
+        </div><!-- .tagcloud -->
+    </section><!-- .widget -->
+
+</aside><!-- .sidebar -->
+
+
+                </main><!-- .site-main -->
+            </div><!-- .inner -->
+        </div><!-- .site-content -->
+        <footer class="site-footer outer">
+    <div class="inner">
+        <div class="site-info">
+            <a href="#top" id="js-top-link" class="top-link button button-icon button-fill-horz"><span class="screen-reader-text">Back to the top</span><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M3.44 18.359l8.56-8.541 8.56 8.541 2.63-2.63-11.189-11.189-11.189 11.189z"></path></svg></a>
+        </div><!-- .site-info -->
+    </div><!-- .inner -->
+</footer><!-- .site-footer -->
+
+    </div><!-- .site -->
+    
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-117056147-2"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-117056147-2');
+</script>
+
+    
+    <script src="/js/scripts.js"></script>
+</body>
+</html>
