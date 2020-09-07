@@ -5,8 +5,8 @@
         <description>Java, performance and design tips by Roman Markunas (Romans Markuns)</description>
         <link>https://romanmarkunas.com/</link>
         <atom:link href="https://romanmarkunas.com/feed.xml" rel="self" type="application/rss+xml"/>
-        <pubDate>Mon, 07 Sep 2020 21:51:37 +0100</pubDate>
-        <lastBuildDate>Mon, 07 Sep 2020 21:51:37 +0100</lastBuildDate>
+        <pubDate>Mon, 07 Sep 2020 22:04:32 +0100</pubDate>
+        <lastBuildDate>Mon, 07 Sep 2020 22:04:32 +0100</lastBuildDate>
         <generator>Jekyll v4.0.1</generator>
         
             <item>
@@ -925,7 +925,17 @@ impossible to annotate imported class.&lt;/p&gt;
 &lt;h2&gt;Easy solution using built-in JAR gradle plugin&lt;/h2&gt;
 
 &lt;div class=&quot;language-groovy highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;n&quot;&gt;jar&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
-   &lt;span class=&quot;n&quot;&gt;from&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;configurations&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;compile&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;collect&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;it&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;isDirectory&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;?&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;it&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;zipTree&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;it&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;manifest&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;n&quot;&gt;attributes&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;
+            &lt;span class=&quot;s1&quot;&gt;'Main-Class'&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;com.example.CraneBookingApplication&quot;&lt;/span&gt;
+        &lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+    &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+
+   &lt;span class=&quot;n&quot;&gt;from&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;n&quot;&gt;configurations&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;compile&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;collect&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt; 
+            &lt;span class=&quot;n&quot;&gt;it&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;isDirectory&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;?&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;it&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;zipTree&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;it&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; 
+        &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt; 
+    &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
 &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
 
@@ -934,11 +944,11 @@ impossible to annotate imported class.&lt;/p&gt;
   &lt;li&gt;&lt;em&gt;jar&lt;/em&gt; - packaging task available in gradle as part of &lt;em&gt;java&lt;/em&gt; plugin&lt;/li&gt;
   &lt;li&gt;&lt;em&gt;from&lt;/em&gt; - copies passed FileTree into JAR&lt;/li&gt;
   &lt;li&gt;&lt;em&gt;configurations&lt;/em&gt; - holds all configurations (set of dependencies)&lt;/li&gt;
-  &lt;li&gt;&lt;em&gt;compile&lt;/em&gt; - I used compile configuration for this particular example, but this could be any other or even a separate configuration just for fat JAR&lt;/li&gt;
+  &lt;li&gt;&lt;em&gt;compile&lt;/em&gt; - I used compile configuration for this particular example, but this could be any other (i.g. &lt;code class=&quot;highlighter-rouge&quot;&gt;implementation&lt;/code&gt; in newer Gradle versions) or even a separate configuration just for fat JAR&lt;/li&gt;
   &lt;li&gt;&lt;em&gt;zipTree&lt;/em&gt; - this returns zipped file tree object, because JAR files essentially are ZIP files with specific file arrangement and content&lt;/li&gt;
 &lt;/ul&gt;
 
-&lt;p&gt;While this is nice one-liner that uses only built-in gradle stuff, it will work only in cases when there are no name clashes in all dependencies. For example, if more than one dependency implements Java SPI service interface you will have multiple resources with the same name and only last one will make it into fat JAR.&lt;/p&gt;
+&lt;p&gt;While this is nice little solution that uses only built-in gradle stuff, it will work only in cases when there are no name clashes in all dependencies. For example, if more than one dependency implements Java SPI service interface you will have multiple &lt;em&gt;META-INF&lt;/em&gt; resources with the same name and only last one will make it into fat JAR.&lt;/p&gt;
 
 &lt;h2&gt;Using Shadow JAR plugin&lt;/h2&gt;
 

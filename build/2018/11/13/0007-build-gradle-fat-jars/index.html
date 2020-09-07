@@ -121,7 +121,17 @@
 <h2>Easy solution using built-in JAR gradle plugin</h2>
 
 <div class="language-groovy highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">jar</span> <span class="o">{</span>
-   <span class="n">from</span> <span class="o">{</span><span class="n">configurations</span><span class="o">.</span><span class="na">compile</span><span class="o">.</span><span class="na">collect</span> <span class="o">{</span> <span class="n">it</span><span class="o">.</span><span class="na">isDirectory</span><span class="o">()</span> <span class="o">?</span> <span class="n">it</span> <span class="o">:</span> <span class="n">zipTree</span><span class="o">(</span><span class="n">it</span><span class="o">)</span> <span class="o">}</span> <span class="o">}</span>
+    <span class="n">manifest</span> <span class="o">{</span>
+        <span class="n">attributes</span><span class="o">(</span>
+            <span class="s1">'Main-Class'</span><span class="o">:</span> <span class="s2">"com.example.CraneBookingApplication"</span>
+        <span class="o">)</span>
+    <span class="o">}</span>
+
+   <span class="n">from</span> <span class="o">{</span>
+        <span class="n">configurations</span><span class="o">.</span><span class="na">compile</span><span class="o">.</span><span class="na">collect</span> <span class="o">{</span> 
+            <span class="n">it</span><span class="o">.</span><span class="na">isDirectory</span><span class="o">()</span> <span class="o">?</span> <span class="n">it</span> <span class="o">:</span> <span class="n">zipTree</span><span class="o">(</span><span class="n">it</span><span class="o">)</span> 
+        <span class="o">}</span> 
+    <span class="o">}</span>
 <span class="o">}</span>
 </code></pre></div></div>
 
@@ -130,11 +140,11 @@
   <li><em>jar</em> - packaging task available in gradle as part of <em>java</em> plugin</li>
   <li><em>from</em> - copies passed FileTree into JAR</li>
   <li><em>configurations</em> - holds all configurations (set of dependencies)</li>
-  <li><em>compile</em> - I used compile configuration for this particular example, but this could be any other or even a separate configuration just for fat JAR</li>
+  <li><em>compile</em> - I used compile configuration for this particular example, but this could be any other (i.g. <code class="highlighter-rouge">implementation</code> in newer Gradle versions) or even a separate configuration just for fat JAR</li>
   <li><em>zipTree</em> - this returns zipped file tree object, because JAR files essentially are ZIP files with specific file arrangement and content</li>
 </ul>
 
-<p>While this is nice one-liner that uses only built-in gradle stuff, it will work only in cases when there are no name clashes in all dependencies. For example, if more than one dependency implements Java SPI service interface you will have multiple resources with the same name and only last one will make it into fat JAR.</p>
+<p>While this is nice little solution that uses only built-in gradle stuff, it will work only in cases when there are no name clashes in all dependencies. For example, if more than one dependency implements Java SPI service interface you will have multiple <em>META-INF</em> resources with the same name and only last one will make it into fat JAR.</p>
 
 <h2>Using Shadow JAR plugin</h2>
 
