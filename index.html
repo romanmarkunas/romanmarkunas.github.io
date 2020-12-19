@@ -90,6 +90,44 @@
     <article class="post">
         <header class="post-header">
             <div class="post-header-wrap">
+                <h2 class="post-title outer"><a href="/performance/2020/09/10/0012-performance-reducing-jvm-memory-footprint-3-off-heap/" rel="bookmark">Reducing JVM heap size, part 3: Manual memory management</a></h2>
+            </div>
+        </header><!-- .post-header -->
+        <div class="post-content inner-small outer">
+            <time class="published" datetime="2020-09-10">2020-09-10</time><span class="reading-time" title="Estimated read time">
+  
+  
+    	&mdash; 12 min read
+  
+</span>
+
+
+            <br>
+
+            
+                
+                    <a href="/tags/index.html#performance" rel="tag" id="a-post-tag">#performance</a>
+                
+                    <a href="/tags/index.html#java" rel="tag" id="a-post-tag">#java</a>
+                
+                    <a href="/tags/index.html#memory" rel="tag" id="a-post-tag">#memory</a>
+                
+                <br>
+            
+            <br>
+
+            
+                <p>In this article we will look at different ways to figure out and fix unnecessary memory consumption by JVM. This is useful for JVM applications that store huge amount of data in memory and can help avoid OutOfMemoryError if application data cannot be partitioned and scaled horizontally.</p>
+
+<p>In part 3, we will take a look on more advanced techniques used to reduce JVM heap size, which involves manual memory management. 
+                <p class="read-more"><a href="/performance/2020/09/10/0012-performance-reducing-jvm-memory-footprint-3-off-heap/" class="button">Read more</a></p>
+            
+        </div><!-- .post-content -->
+    </article><!-- .post -->
+    
+    <article class="post">
+        <header class="post-header">
+            <div class="post-header-wrap">
                 <h2 class="post-title outer"><a href="/performance/2020/07/01/0011-performance-reducing-jvm-memory-footprint-2-optimizing/" rel="bookmark">Reducing JVM heap size, part 2: Optimizing</a></h2>
             </div>
         </header><!-- .post-header -->
@@ -97,7 +135,7 @@
             <time class="published" datetime="2020-07-01">2020-07-01</time><span class="reading-time" title="Estimated read time">
   
   
-    	&mdash; 11 min read
+    	&mdash; 12 min read
   
 </span>
 
@@ -252,44 +290,6 @@ impossible to annotate imported class.</p>
         </div><!-- .post-content -->
     </article><!-- .post -->
     
-    <article class="post">
-        <header class="post-header">
-            <div class="post-header-wrap">
-                <h2 class="post-title outer"><a href="/build/2018/11/13/0007-build-gradle-fat-jars/" rel="bookmark">Creating fat JARs with gradle</a></h2>
-            </div>
-        </header><!-- .post-header -->
-        <div class="post-content inner-small outer">
-            <time class="published" datetime="2018-11-13">2018-11-13</time><span class="reading-time" title="Estimated read time">
-  
-  
-    	&mdash; 3 min read
-  
-</span>
-
-
-            <br>
-
-            
-                
-                    <a href="/tags/index.html#build" rel="tag" id="a-post-tag">#build</a>
-                
-                    <a href="/tags/index.html#gradle" rel="tag" id="a-post-tag">#gradle</a>
-                
-                    <a href="/tags/index.html#java" rel="tag" id="a-post-tag">#java</a>
-                
-                <br>
-            
-            <br>
-
-            
-                <p>Here’s a quick tutorial on how to package your java application and dependencies into single fat JAR (shadow JAR, capsule, however it’s called) with gradle.</p>
-
-
-                <p class="read-more"><a href="/build/2018/11/13/0007-build-gradle-fat-jars/" class="button">Read more</a></p>
-            
-        </div><!-- .post-content -->
-    </article><!-- .post -->
-    
     
     <nav class="pagination">
         <h2 class="screen-reader-text">Posts navigation</h2>
@@ -330,6 +330,8 @@ impossible to annotate imported class.</p>
         <h2 class="widget-title line-accent">Latest Posts</h2>
         <ul class="recent-posts">
             
+            <li class="recent-item"><a href="/performance/2020/09/10/0012-performance-reducing-jvm-memory-footprint-3-off-heap/">Reducing JVM heap size, part 3: Manual memory management</a> <span>September 10, 2020</span></li>
+            
             <li class="recent-item"><a href="/performance/2020/07/01/0011-performance-reducing-jvm-memory-footprint-2-optimizing/">Reducing JVM heap size, part 2: Optimizing</a> <span>July 1, 2020</span></li>
             
             <li class="recent-item"><a href="/performance/2020/07/01/0010-performance-reducing-jvm-memory-footprint-1-profile/">Reducing JVM heap size, part 1: Profiling</a> <span>July 1, 2020</span></li>
@@ -337,8 +339,6 @@ impossible to annotate imported class.</p>
             <li class="recent-item"><a href="/protocols/2020/06/03/0009-protocols-jackson-mixins/">Jackson mix-ins</a> <span>June 3, 2020</span></li>
             
             <li class="recent-item"><a href="/microservices/2018/11/15/0008-microservices-dropwizard-101/">Getting started with Dropwizard</a> <span>November 15, 2018</span></li>
-            
-            <li class="recent-item"><a href="/build/2018/11/13/0007-build-gradle-fat-jars/">Creating fat JARs with gradle</a> <span>November 13, 2018</span></li>
             
         </ul><!-- .recent-posts -->
     </section><!-- .widget-recent-posts -->

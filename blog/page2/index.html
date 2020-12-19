@@ -87,6 +87,44 @@
     <article class="post">
         <header class="post-header">
             <div class="post-header-wrap">
+                <h2 class="post-title outer"><a href="/build/2018/11/13/0007-build-gradle-fat-jars/" rel="bookmark">Creating fat JARs with gradle</a></h2>
+            </div>
+        </header><!-- .post-header -->
+        <div class="post-content inner-small outer">
+            <time class="published" datetime="2018-11-13">2018-11-13</time><span class="reading-time" title="Estimated read time">
+  
+  
+    	&mdash; 3 min read
+  
+</span>
+
+
+            <br>
+
+            
+                
+                    <a href="/tags/index.html#build" rel="tag" id="a-post-tag">#build</a>
+                
+                    <a href="/tags/index.html#gradle" rel="tag" id="a-post-tag">#gradle</a>
+                
+                    <a href="/tags/index.html#java" rel="tag" id="a-post-tag">#java</a>
+                
+                <br>
+            
+            <br>
+
+            
+                <p>Here’s a quick tutorial on how to package your java application and dependencies into single fat JAR (shadow JAR, capsule, however it’s called) with gradle.</p>
+
+
+                <p class="read-more"><a href="/build/2018/11/13/0007-build-gradle-fat-jars/" class="button">Read more</a></p>
+            
+        </div><!-- .post-content -->
+    </article><!-- .post -->
+    
+    <article class="post">
+        <header class="post-header">
+            <div class="post-header-wrap">
                 <h2 class="post-title outer"><a href="/messaging/2018/10/01/0006-messaging-kafka-in-practice-1-producer/" rel="bookmark">Kafka transactions in practice 1: Producer</a></h2>
             </div>
         </header><!-- .post-header -->
@@ -227,50 +265,6 @@
         </div><!-- .post-content -->
     </article><!-- .post -->
     
-    <article class="post">
-        <header class="post-header">
-            <div class="post-header-wrap">
-                <h2 class="post-title outer"><a href="/concurrency/2018/04/02/0002-concurrency-introduction-to-java-coroutines/" rel="bookmark">Introduction to Java coroutines</a></h2>
-            </div>
-        </header><!-- .post-header -->
-        <div class="post-content inner-small outer">
-            <time class="published" datetime="2018-04-02">2018-04-02</time><span class="reading-time" title="Estimated read time">
-  
-  
-    	&mdash; 10 min read
-  
-</span>
-
-
-            <br>
-
-            
-                
-                    <a href="/tags/index.html#coroutines" rel="tag" id="a-post-tag">#coroutines</a>
-                
-                    <a href="/tags/index.html#java" rel="tag" id="a-post-tag">#java</a>
-                
-                    <a href="/tags/index.html#concurrency" rel="tag" id="a-post-tag">#concurrency</a>
-                
-                    <a href="/tags/index.html#multithreading" rel="tag" id="a-post-tag">#multithreading</a>
-                
-                    <a href="/tags/index.html#non-blocking+IO" rel="tag" id="a-post-tag">#non-blocking IO</a>
-                
-                    <a href="/tags/index.html#quasar" rel="tag" id="a-post-tag">#quasar</a>
-                
-                <br>
-            
-            <br>
-
-            
-                <p>Many times I find an ExecutorService with 400 threads in Java code and I always got that’s-not-ok feeling of that. This is usually introduced as necessary evil to retain application responsiveness while being blocked by downstream. However there is another way of achieving responsiveness, which is couroutines (alternatively known also as green threads and non-blocking threads in another languages). Java doesn’t support coroutines at language level, so for this example we will use almost exclusive Java implementation of coroutines - Quasar.</p>
-
-
-                <p class="read-more"><a href="/concurrency/2018/04/02/0002-concurrency-introduction-to-java-coroutines/" class="button">Read more</a></p>
-            
-        </div><!-- .post-content -->
-    </article><!-- .post -->
-    
     
     <nav class="pagination">
         <h2 class="screen-reader-text">Posts navigation</h2>
@@ -314,6 +308,8 @@
         <h2 class="widget-title line-accent">Latest Posts</h2>
         <ul class="recent-posts">
             
+            <li class="recent-item"><a href="/performance/2020/09/10/0012-performance-reducing-jvm-memory-footprint-3-off-heap/">Reducing JVM heap size, part 3: Manual memory management</a> <span>September 10, 2020</span></li>
+            
             <li class="recent-item"><a href="/performance/2020/07/01/0011-performance-reducing-jvm-memory-footprint-2-optimizing/">Reducing JVM heap size, part 2: Optimizing</a> <span>July 1, 2020</span></li>
             
             <li class="recent-item"><a href="/performance/2020/07/01/0010-performance-reducing-jvm-memory-footprint-1-profile/">Reducing JVM heap size, part 1: Profiling</a> <span>July 1, 2020</span></li>
@@ -321,8 +317,6 @@
             <li class="recent-item"><a href="/protocols/2020/06/03/0009-protocols-jackson-mixins/">Jackson mix-ins</a> <span>June 3, 2020</span></li>
             
             <li class="recent-item"><a href="/microservices/2018/11/15/0008-microservices-dropwizard-101/">Getting started with Dropwizard</a> <span>November 15, 2018</span></li>
-            
-            <li class="recent-item"><a href="/build/2018/11/13/0007-build-gradle-fat-jars/">Creating fat JARs with gradle</a> <span>November 13, 2018</span></li>
             
         </ul><!-- .recent-posts -->
     </section><!-- .widget-recent-posts -->

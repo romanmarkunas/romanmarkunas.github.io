@@ -3,9 +3,26 @@
 
     
     <url>
+        <loc>https://romanmarkunas.com/performance/2020/09/10/0012-performance-reducing-jvm-memory-footprint-3-off-heap/</loc>
+        
+        <lastmod>2020-09-10</lastmod>
+        
+
+        
+        <changefreq>monthly</changefreq>
+        
+
+        
+        <priority>0.7</priority>
+        
+    </url>
+    
+
+    
+    <url>
         <loc>https://romanmarkunas.com/performance/2020/07/01/0011-performance-reducing-jvm-memory-footprint-2-optimizing/</loc>
         
-        <lastmod>2020-08-17</lastmod>
+        <lastmod>2020-12-18</lastmod>
         
 
         
@@ -198,7 +215,7 @@
     <url>
         <loc>https://romanmarkunas.com/tags/</loc>
         
-        <lastmod>2020-09-07T22:04:32+01:00</lastmod>
+        <lastmod>2020-12-19T16:39:50+00:00</lastmod>
         
 
         
@@ -215,7 +232,7 @@
     <url>
         <loc>https://romanmarkunas.com/</loc>
         
-        <lastmod>2020-09-07T22:04:32+01:00</lastmod>
+        <lastmod>2020-12-19T16:39:50+00:00</lastmod>
         
 
         
@@ -232,7 +249,7 @@
     <url>
         <loc>https://romanmarkunas.com/css/main.css</loc>
         
-        <lastmod>2020-09-07T22:04:32+01:00</lastmod>
+        <lastmod>2020-12-19T16:39:50+00:00</lastmod>
         
 
         
@@ -249,7 +266,7 @@
     <url>
         <loc>https://romanmarkunas.com/robots.txt</loc>
         
-        <lastmod>2020-09-07T22:04:32+01:00</lastmod>
+        <lastmod>2020-12-19T16:39:50+00:00</lastmod>
         
 
         
@@ -268,7 +285,7 @@
     <url>
         <loc>https://romanmarkunas.com/style-guide/</loc>
         
-        <lastmod>2020-09-07T22:04:32+01:00</lastmod>
+        <lastmod>2020-12-19T16:39:50+00:00</lastmod>
         
 
         
@@ -319,7 +336,7 @@
     <url>
         <loc>https://romanmarkunas.com/redirects.json</loc>
         
-        <lastmod>2020-09-07T22:04:32+01:00</lastmod>
+        <lastmod>2020-12-19T16:39:50+00:00</lastmod>
         
 
         
@@ -336,7 +353,7 @@
     <url>
         <loc>https://romanmarkunas.com/blog/page2/</loc>
         
-        <lastmod>2020-09-07T22:04:32+01:00</lastmod>
+        <lastmod>2020-12-19T16:39:50+00:00</lastmod>
         
 
         
@@ -353,7 +370,7 @@
     <url>
         <loc>https://romanmarkunas.com/blog/page3/</loc>
         
-        <lastmod>2020-09-07T22:04:32+01:00</lastmod>
+        <lastmod>2020-12-19T16:39:50+00:00</lastmod>
         
 
         
@@ -370,7 +387,7 @@
     <url>
         <loc>https://romanmarkunas.com/css/main.css.map</loc>
         
-        <lastmod>2020-09-07T22:04:32+01:00</lastmod>
+        <lastmod>2020-12-19T16:39:50+00:00</lastmod>
         
 
         

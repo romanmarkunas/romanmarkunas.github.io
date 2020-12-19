@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Reducing JVM heap size, part 3: Manual memory management</title> 
+    <meta name="description" content="Step by step guide on how to reduce JVM memory footprint. Part 3: Further reducing memory consumption by going off-heap.">
+    <meta name="twitter:description" content="Step by step guide on how to reduce JVM memory footprint. Part 3: Further reducing memory consumption by going off-heap.">
+    <meta name="og:description" content="Step by step guide on how to reduce JVM memory footprint. Part 3: Further reducing memory consumption by going off-heap.">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link rel="shortcut icon" href="/favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:400,400i,700,700i&display=swap" />
+    <link rel="stylesheet" href="/css/main.css" />
+    <link rel="canonical" href="https://romanmarkunas.com/performance/2020/09/10/0012-performance-reducing-jvm-memory-footprint-3-off-heap/">
+    <link rel="alternate" type="application/rss+xml" title="Roman Markunas (Romans Markuns) blog Feed" href="https://romanmarkunas.com/feed.xml">
+    
+    <script data-ad-client="ca-pub-9488600968816185" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+    
+</head>
+<body onload="transformSyntaxHiglightsBecausePygmentsJavaLexerIsRubbish();">
+    <div class="site">
+        <nav id="top" class="site-nav outer" aria-label="Main Menu">
+    <div class="inner">
+        <div class="site-nav-inside">
+
+            <button id="menu-show" class="js-menu-toggle"><span class="icon icon-menu"
+                    aria-hidden="true"></span>Menu</button>
+
+            <div class="menu-panel">
+                <div class="menu-panel-scrollable">
+                    <div class="menu-panel-top">
+                        <button id="menu-hide" class="js-menu-toggle button button-icon button-fill-horz"><span class="icon icon-close" aria-hidden="true"></span><span class="screen-reader-text">Close</span></button>
+                    </div>
+                    <ul class="menu">
+                        
+                        
+                        
+                        <li class="menu-item ">
+                            <a href="/">Home</a>
+                        </li>
+                        
+                        
+                        
+                        <li class="menu-item ">
+                            <a href="/tags/">Archive</a>
+                        </li>
+                        
+                    </ul>
+                </div>
+            </div><!-- .menu-panel -->
+
+            <ul class="actions">
+                <li>
+                    <a class="button button-icon button-fill-horz"
+                       href="https://www.linkedin.com/in/romansmarkuns"><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg><span class="screen-reader-text">LinkedIn</span></a>
+                </li>
+                <li>
+                    <a class="button button-icon button-fill-horz"
+                       href="https://github.com/romanmarkunas"><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg><span class="screen-reader-text">GitHub</span></a>
+                </li>
+                <li>
+                    <a class="button button-icon button-fill-horz"
+                        href="/feed.xml"><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M19.199 24C19.199 13.467 10.533 4.8 0 4.8V0c13.165 0 24 10.835 24 24h-4.801zM3.291 17.415c1.814 0 3.293 1.479 3.293 3.295 0 1.813-1.485 3.29-3.301 3.29C1.47 24 0 22.526 0 20.71s1.475-3.294 3.291-3.295zM15.909 24h-4.665c0-6.169-5.075-11.245-11.244-11.245V8.09c8.727 0 15.909 7.184 15.909 15.91z"/></svg><span class="screen-reader-text">Subscribe</span></a>
+                </li>
+            </ul><!-- .actions -->
+
+        </div><!-- .site-nav-inside -->
+    </div><!-- .inner -->
+</nav><!-- .site-nav -->
+
+        <header class="site-alto-header outer">
+    <div class="inner">
+        <div class="site-header-inside">
+
+<!--            -->
+
+        </div><!-- .site-header-inside -->
+    </div><!-- .inner -->
+</header><!-- .site-header -->
+
+        <div class="site-content outer">
+            <div class="inner">
+                <main class="site-main">
+                    <div class="primary">
+    <article class="post post-full">
+        <header class="post-header">
+            <div class="post-header-wrap">
+                <h1 class="post-title outer">Reducing JVM heap size, part 3: Manual memory management</h1>
+            </div>
+        </header><!-- .post-header -->
+        <div class="post-content inner-small outer">
+            <time class="published" datetime="">2020-09-10</time><span class="reading-time" title="Estimated read time">
+  
+  
+    	&mdash; 12 min read
+  
+</span>
+
+
+            <br>
+
+            
+            
+            <a href="/tags/index.html#performance" rel="tag" id="a-post-tag">#performance</a>
+            
+            <a href="/tags/index.html#java" rel="tag" id="a-post-tag">#java</a>
+            
+            <a href="/tags/index.html#memory" rel="tag" id="a-post-tag">#memory</a>
+            
+            <br>
+            
+            <br>
+
+            <p>In this article we will look at different ways to figure out and fix unnecessary memory consumption by JVM. This is useful for JVM applications that store huge amount of data in memory and can help avoid OutOfMemoryError if application data cannot be partitioned and scaled horizontally.</p>
+
+<p>In part 3, we will take a look on more advanced techniques used to reduce JVM heap size, which involves manual memory management. <!--more--> This is the last part of series following <a href="/performance/2020/07/01/0011-performance-reducing-jvm-memory-footprint-2-optimizing/">part 2</a>.</p>
+
+<h2>Space occupied by Java object</h2>
+
+<p>Our best result in part 2 was 481300 orders on a heap of 64MB, in an <a href="https://github.com/romanmarkunas-com/0010-memory-optimization/blob/4ea92619c3de0732fa11d2ed8a3454323d2e57dc/src/test/java/com/romanmarkunas/blog/memory/OrderStoreMainTest.java#L179">example 11</a>. This is on average 139 bytes per object. At this point we optimised the encoding of data and extra memory required by data structures. Let’s look at the heap dump and see how much space every <code class="highlighter-rouge">Order</code> object is taking. Eclipse MAT is claiming it is 56 bytes, let’s see how this adds up:</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Field name</th>
+      <th>Field type</th>
+      <th style="text-align: right">Field size (bytes)</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>id</td>
+      <td>long</td>
+      <td style="text-align: right">8</td>
+    </tr>
+    <tr>
+      <td>user</td>
+      <td>reference (byte[])</td>
+      <td style="text-align: right">4</td>
+    </tr>
+    <tr>
+      <td>articleNr</td>
+      <td>int</td>
+      <td style="text-align: right">4</td>
+    </tr>
+    <tr>
+      <td>count</td>
+      <td>int</td>
+      <td style="text-align: right">4</td>
+    </tr>
+    <tr>
+      <td>pricePence</td>
+      <td>int</td>
+      <td style="text-align: right">4</td>
+    </tr>
+    <tr>
+      <td>addressNumber</td>
+      <td>reference (String)</td>
+      <td style="text-align: right">4</td>
+    </tr>
+    <tr>
+      <td>addressStreet</td>
+      <td>reference (String)</td>
+      <td style="text-align: right">4</td>
+    </tr>
+    <tr>
+      <td>addressCity</td>
+      <td>reference (String)</td>
+      <td style="text-align: right">4</td>
+    </tr>
+    <tr>
+      <td>addressRegion</td>
+      <td>reference (String)</td>
+      <td style="text-align: right">4</td>
+    </tr>
+    <tr>
+      <td>addressPostCode</td>
+      <td>reference (String)</td>
+      <td style="text-align: right">4</td>
+    </tr>
+    <tr>
+      <td>TOTAL</td>
+      <td> </td>
+      <td style="text-align: right">44</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>However, this is not a full picture as <code class="highlighter-rouge">String</code>, for example, is an indirection over <code class="highlighter-rouge">byte[]</code> and ads extra reference, byte and int field for each object.</p>
+
+<p>Therefore, we are wasting:</p>
+<ul>
+  <li>5x (4 + 1 + 4) = 45 bytes for <code class="highlighter-rouge">String</code> objects we could be leaving off as <code class="highlighter-rouge">byte[]</code></li>
+  <li>12 bytes of object header</li>
+</ul>
+
+<p>Let’s try to tackle these two.</p>
+
+<h2>Pooling byte arrays</h2>
+
+<p>In previous part we were able to deduplicate <code class="highlighter-rouge">String</code> instances by using JVM’s pool. If we are to get rid of strings, we have to replace JVM pool with a custom one, handling <code class="highlighter-rouge">byte[]</code> deduplication for us.</p>
+
+<p>However, I would like to take this a step further, as eventually we want to store <code class="highlighter-rouge">Order</code> object off heap. This means that we must avoid storing references on an <code class="highlighter-rouge">Order</code>. Object references in Java can be mutated by JVM during GC cycles and if we want to avoid serializing duplicate string values, we must replace <code class="highlighter-rouge">byte[]</code> references with keys to byte array pool.</p>
+
+<p>In previous part we already tried to pool <code class="highlighter-rouge">byte[]</code> (see <a href="https://github.com/romanmarkunas-com/0010-memory-optimization/blob/3550717a4e365a87f4000c6ea703a2c4f3d847d1/src/test/java/com/romanmarkunas/blog/memory/OrderStoreMainTest.java#L186">example 12</a>), but did not succeed because of tree-structure wrapper overheads. To make this pooling worthwhile, we can use open-addressing implementation with the following interface:</p>
+
+<div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kd">public</span> <span class="kd">class</span> <span class="nc">PooledByteArrayMap</span> <span class="o">{</span>
+    <span class="kd">public</span> <span class="kt">int</span> <span class="nf">put</span><span class="o">(</span><span class="kt">byte</span><span class="o">[]</span> <span class="n">value</span><span class="o">);</span>
+    <span class="kd">public</span> <span class="kt">byte</span> <span class="nd">@ImmutableByteArray</span> <span class="o">[]</span> <span class="n">get</span><span class="o">(</span><span class="kt">int</span> <span class="n">key</span><span class="o">);</span>
+    <span class="kd">public</span> <span class="kt">void</span> <span class="nf">free</span><span class="o">(</span><span class="kt">int</span> <span class="n">key</span><span class="o">);</span>
+<span class="o">}</span>
+</code></pre></div></div>
+
+<p>This data structure is efficient in deduplicating byte arrays with time complexity of a hash map and lookup/remove complexity of O(1). Source code is available <a href="https://github.com/romanmarkunas-com/0010-memory-optimization/blob/4d945595b879dde6395ecb619f613083a113f7d3/src/main/java/com/romanmarkunas/blog/memory/example14/PooledByteArrayMap.java#L7">here</a>.</p>
+
+<p>Using such pool, we are left without any references in <code class="highlighter-rouge">Order</code> object, but we can create temporary <code class="highlighter-rouge">String</code> objects during order processing:</p>
+
+<div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kd">public</span> <span class="kd">final</span> <span class="kd">class</span> <span class="nc">Order</span> <span class="o">{</span>
+
+    <span class="kd">private</span> <span class="kd">final</span> <span class="kt">long</span> <span class="n">id</span><span class="o">;</span>
+    <span class="kd">private</span> <span class="kd">final</span> <span class="kt">int</span> <span class="n">user</span><span class="o">;</span>
+    <span class="kd">private</span> <span class="kd">final</span> <span class="kt">int</span> <span class="n">articleNr</span><span class="o">;</span>
+    <span class="kd">private</span> <span class="kd">final</span> <span class="kt">int</span> <span class="n">count</span><span class="o">;</span>
+    <span class="kd">private</span> <span class="kd">final</span> <span class="kt">int</span> <span class="n">pricePence</span><span class="o">;</span>
+    <span class="kd">private</span> <span class="kd">final</span> <span class="kt">int</span> <span class="n">addressNumber</span><span class="o">;</span>
+    <span class="kd">private</span> <span class="kd">final</span> <span class="kt">int</span> <span class="n">addressStreet</span><span class="o">;</span>
+    <span class="kd">private</span> <span class="kd">final</span> <span class="kt">int</span> <span class="n">addressCity</span><span class="o">;</span>
+    <span class="kd">private</span> <span class="kd">final</span> <span class="kt">int</span> <span class="n">addressRegion</span><span class="o">;</span>
+    <span class="kd">private</span> <span class="kd">final</span> <span class="kt">int</span> <span class="n">addressPostCode</span><span class="o">;</span>
+
+    <span class="nd">@JsonCreator</span>
+    <span class="kd">public</span> <span class="nf">Order</span><span class="o">(</span>
+            <span class="nd">@JsonProperty</span><span class="o">(</span><span class="s">"id"</span><span class="o">)</span> <span class="kt">long</span> <span class="n">id</span><span class="o">,</span>
+            <span class="nd">@JsonProperty</span><span class="o">(</span><span class="s">"user"</span><span class="o">)</span> <span class="kt">byte</span><span class="o">[]</span> <span class="n">user</span><span class="o">,</span>
+            <span class="c1">// other fields omitted</span>
+            <span class="nd">@JacksonInject</span> <span class="nc">PooledByteArrayMap</span> <span class="n">byteArrayPool</span>
+    <span class="o">)</span> <span class="o">{</span>
+        <span class="k">this</span><span class="o">.</span><span class="na">id</span> <span class="o">=</span> <span class="n">id</span><span class="o">;</span>
+        <span class="k">this</span><span class="o">.</span><span class="na">user</span> <span class="o">=</span> <span class="n">byteArrayPool</span><span class="o">.</span><span class="na">put</span><span class="o">(</span><span class="n">user</span><span class="o">);</span>
+        <span class="c1">// other fields omitted</span>
+    <span class="o">}</span>
+
+    <span class="c1">// other getters omitted</span>
+
+    <span class="kd">public</span> <span class="nc">String</span> <span class="nf">getAddressPostCode</span><span class="o">(</span><span class="nc">PooledByteArrayMap</span> <span class="n">byteArrayPool</span><span class="o">)</span> <span class="o">{</span>
+        <span class="k">return</span> <span class="nf">restoreString</span><span class="o">(</span><span class="n">addressPostCode</span><span class="o">,</span> <span class="n">byteArrayPool</span><span class="o">);</span>
+    <span class="o">}</span>    
+
+    <span class="nd">@SuppressWarnings</span><span class="o">(</span><span class="s">"byte.array.weakening"</span><span class="o">)</span>
+    <span class="kd">private</span> <span class="nc">String</span> <span class="nf">restoreString</span><span class="o">(</span><span class="kt">int</span> <span class="n">key</span><span class="o">,</span> <span class="nc">PooledByteArrayMap</span> <span class="n">byteArrayPool</span><span class="o">)</span> <span class="o">{</span>
+        <span class="k">return</span> <span class="k">new</span> <span class="nf">String</span><span class="o">(</span><span class="n">byteArrayPool</span><span class="o">.</span><span class="na">get</span><span class="o">(</span><span class="n">key</span><span class="o">),</span> <span class="nc">StandardCharsets</span><span class="o">.</span><span class="na">US_ASCII</span><span class="o">);</span>
+    <span class="o">}</span>
+<span class="o">}</span>
+</code></pre></div></div>
+
+<p>With this approach we can fit 576700 orders (+20%) into memory, which is about 116 bytes (-23) per object. We were not able to get all 45 bytes worth of gain by ditching <code class="highlighter-rouge">String</code> due to some overheads of a pool, but it is an improvement nonetheless.</p>
+
+<p>This change has 2 unintended consequences which are discussed below.</p>
+
+<h2>Replacing object encapsulation guarantees with compile checks</h2>
+
+<p>One of key features of Java standard library <code class="highlighter-rouge">String</code> class is its immutability. By removing it altogether we are not protected from accidentally changing <code class="highlighter-rouge">byte[]</code> content, which would alter results of business transactions and compromise integrity of pool. The cost of safety was too high to bear at runtime, however we can move that cost to compile time.</p>
+
+<p>Since Java 8, <code class="highlighter-rouge">javac</code> allows adding custom type checkers which would be run as part of code compilation. For example, this allows developers to annotate certain variables as not nullable and avoid pesky null checks throughout the code. Similarly, we can declare all <code class="highlighter-rouge">byte[]</code> instances, returned by the pool immutable using annotation:</p>
+
+<div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kd">public</span> <span class="kt">byte</span> <span class="nd">@ImmutableByteArray</span> <span class="o">[]</span> <span class="n">get</span><span class="o">(</span><span class="kt">int</span> <span class="n">key</span><span class="o">);</span>
+</code></pre></div></div>
+
+<p>I’ve decided to implement such type as a pair of annotation/checker within <a href="https://checkerframework.org/">Checker Framework</a>. This ensures that all attempts to modify <code class="highlighter-rouge">byte[]</code> returned by pool or to downcast them to unannotated version would be flagged as compiler error. Checker source can be found <a href="https://github.com/romanmarkunas-com/0010-memory-optimization/blob/4d945595b879dde6395ecb619f613083a113f7d3/immutable-byte-array-checker/src/main/java/com/romanmarkunas/blog/memory/example14/checkers/ImmutableByteArray.java#L11">here</a>.</p>
+
+<p>This approach gives back confidence, without incurring run time costs. Similar approaches can be used to replace type-safe wrapper objects in Java (AKA tiny-types) with primitives to avoid runtime costs and maintain type-safety.</p>
+
+<h2>Array utilisation</h2>
+
+<p>For heap sizes like in this scenario there is another important consideration to take into account. Running previous example 14 with GC logging enabled we can see heap statistics at point of failure:</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>[33.920s][info][gc,heap,exit   ] Heap
+[33.920s][info][gc,heap,exit   ]  garbage-first heap   total 65536K, used 61378K [0x00000000fc000000, 0x0000000100000000)
+[33.920s][info][gc,heap,exit   ]   region size 1024K, 1 young (1024K), 0 survivors (0K)
+[33.920s][info][gc,heap,exit   ]  Metaspace       used 12518K, capacity 12795K, committed 13056K, reserved 1060864K
+[33.920s][info][gc,heap,exit   ]   class space    used 1139K, capacity 1197K, committed 1280K, reserved 1048576K
+</code></pre></div></div>
+
+<p>From this we can observe that about 4MB of heap space was not utilised. One reason for this is humongous object allocation. Every time JVM with G1 GC tries to allocate an object with size larger than region size (1MB in this case) it will combine multiple regions, which then will be used solely by that humongous object. A few megabytes wasted on a multiple gigabyte heap may be unnoticed, however for 64MB heap it makes a considerable difference.</p>
+
+<p>Other thing to consider is array list utilisation. Some space can be wasted, if the list get resized too early and underlying array grows prematurely exacerbating issues with heap fragmentation. In our case, array lists get resized at 50% capacity (default for Agrona collections).</p>
+
+<p>To counter all these effects, I’ve tried following improvements (see <a href="https://github.com/romanmarkunas-com/0010-memory-optimization/blob/4d945595b879dde6395ecb619f613083a113f7d3/src/test/java/com/romanmarkunas/blog/memory/OrderStoreMainTest.java#L225">example 15</a>):</p>
+<ul>
+  <li>changing load factor for collections to 85%</li>
+  <li>custom byte array pool would split underlying arrays into smaller chunks and allocate an extra chunk on resize</li>
+  <li>do not use G1 to reduce memory fragmentation due to humongous allocations. This will not alleviate fragmentation completely as every GC has trouble defragmenting memory with object sizes approaching 10% of total heap. I’ve used serial GC, because for small heaps CMS and throughput collectors can take very long time to fail.</li>
+</ul>
+
+<p>This allows fitting 686200 orders (+19%) into memory, which is about 98 bytes (-18) per object.</p>
+
+<h2>SLAB allocation</h2>
+
+<p>Since <code class="highlighter-rouge">Order</code> object does not hold any object references we can manage allocation ourselves and avoid JVM object header overheads. To accomplish that, we need some sort of allocator to store/retrieve objects for us and provide an abstraction over plain memory access. SLAB is one of simpler allocators that can achieve that. I’ve used the simplest form of SLAB, similar to Linux SLOB allocator (<a href="https://github.com/romanmarkunas-com/0010-memory-optimization/blob/d10605bfb9538ba26cc8439e6c3fd209b2637aeb/src/main/java/com/romanmarkunas/blog/memory/example16/OrderSlabAllocator.java#L12">see source</a>), with a following interface:</p>
+
+<div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kd">public</span> <span class="kd">class</span> <span class="nc">OrderSlabAllocator</span> <span class="o">{</span>
+
+    <span class="kd">public</span> <span class="kt">int</span> <span class="nf">allocate</span><span class="o">();</span>
+    <span class="kd">public</span> <span class="nc">OrderView</span> <span class="nf">get</span><span class="o">(</span><span class="kt">int</span> <span class="n">key</span><span class="o">);</span>
+    <span class="kd">public</span> <span class="kt">void</span> <span class="nf">free</span><span class="o">(</span><span class="kt">int</span> <span class="n">key</span><span class="o">);</span>
+<span class="o">}</span>
+</code></pre></div></div>
+
+<p>Using this store we no longer need to store a reference to <code class="highlighter-rouge">Order</code> object, but only an object key within allocator. In this case key would correspond to some contiguous chuck of memory. However, we still would like a simplicity of using familiar getter/setter API, instead of manipulating bits in memory. To do this we can utilize a flyweight pattern:</p>
+
+<div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kd">public</span> <span class="kd">final</span> <span class="kd">class</span> <span class="nc">OrderView</span> <span class="o">{</span>
+
+    <span class="kd">private</span> <span class="kd">final</span> <span class="nc">PooledByteArrayMap</span> <span class="n">byteArrayPool</span><span class="o">;</span>
+
+    <span class="kd">private</span> <span class="nc">ByteBuffer</span> <span class="n">buffer</span><span class="o">;</span>
+    <span class="kd">private</span> <span class="kt">int</span> <span class="n">startPosition</span><span class="o">;</span>
+
+
+    <span class="nc">OrderView</span><span class="o">(</span><span class="nc">PooledByteArrayMap</span> <span class="n">byteArrayPool</span><span class="o">)</span> <span class="o">{</span>
+        <span class="k">this</span><span class="o">.</span><span class="na">byteArrayPool</span> <span class="o">=</span> <span class="n">byteArrayPool</span><span class="o">;</span>
+    <span class="o">}</span>
+
+    <span class="nc">OrderView</span> <span class="nf">wrap</span><span class="o">(</span><span class="nc">ByteBuffer</span> <span class="n">buffer</span><span class="o">,</span> <span class="kt">int</span> <span class="n">startPosition</span><span class="o">)</span> <span class="o">{</span>
+        <span class="k">this</span><span class="o">.</span><span class="na">buffer</span> <span class="o">=</span> <span class="n">buffer</span><span class="o">;</span>
+        <span class="k">this</span><span class="o">.</span><span class="na">startPosition</span> <span class="o">=</span> <span class="n">startPosition</span><span class="o">;</span>
+        <span class="k">return</span> <span class="k">this</span><span class="o">;</span>
+    <span class="o">}</span>
+
+    <span class="kd">public</span> <span class="nc">OrderView</span> <span class="nf">set</span><span class="o">(</span>
+            <span class="kt">long</span> <span class="n">id</span><span class="o">,</span>
+            <span class="kt">byte</span><span class="o">[]</span> <span class="n">user</span><span class="o">,</span>
+            <span class="kt">int</span> <span class="n">articleNr</span><span class="o">,</span>
+            <span class="kt">int</span> <span class="n">count</span><span class="o">,</span>
+            <span class="kt">int</span> <span class="n">pricePence</span><span class="o">,</span>
+            <span class="nc">String</span> <span class="n">addressNumber</span><span class="o">,</span>
+            <span class="nc">String</span> <span class="n">addressStreet</span><span class="o">,</span>
+            <span class="nc">String</span> <span class="n">addressCity</span><span class="o">,</span>
+            <span class="nc">String</span> <span class="n">addressRegion</span><span class="o">,</span>
+            <span class="nc">String</span> <span class="n">addressPostCode</span>
+    <span class="o">)</span> <span class="o">{</span>
+        <span class="n">buffer</span><span class="o">.</span><span class="na">putLong</span><span class="o">(</span><span class="n">startPosition</span> <span class="o">+</span> <span class="no">ID_OFFSET</span><span class="o">,</span> <span class="n">id</span><span class="o">);</span>
+        <span class="n">buffer</span><span class="o">.</span><span class="na">putInt</span><span class="o">(</span><span class="n">startPosition</span> <span class="o">+</span> <span class="no">USER_OFFSET</span><span class="o">,</span> <span class="n">byteArrayPool</span><span class="o">.</span><span class="na">put</span><span class="o">(</span><span class="n">user</span><span class="o">));</span>
+        <span class="c1">// other fields write omitted</span>
+        <span class="n">buffer</span><span class="o">.</span><span class="na">putInt</span><span class="o">(</span><span class="n">startPosition</span> <span class="o">+</span> <span class="no">ADDRESSNUMBER_OFFSET</span><span class="o">,</span> <span class="n">internString</span><span class="o">(</span><span class="n">addressNumber</span><span class="o">));</span>
+        <span class="k">return</span> <span class="k">this</span><span class="o">;</span>
+    <span class="o">}</span>
+
+
+    <span class="kd">public</span> <span class="kt">long</span> <span class="nf">getId</span><span class="o">()</span> <span class="o">{</span>
+        <span class="k">return</span> <span class="n">buffer</span><span class="o">.</span><span class="na">getLong</span><span class="o">(</span><span class="n">startPosition</span> <span class="o">+</span> <span class="no">ID_OFFSET</span><span class="o">);</span>
+    <span class="o">}</span>
+
+    <span class="kd">public</span> <span class="kt">byte</span> <span class="nd">@ImmutableByteArray</span> <span class="o">[]</span> <span class="n">getUser</span><span class="o">()</span> <span class="o">{</span>
+        <span class="k">return</span> <span class="n">byteArrayPool</span><span class="o">.</span><span class="na">get</span><span class="o">(</span><span class="n">getUserPoolKey</span><span class="o">());</span>
+    <span class="o">}</span>
+
+    <span class="kd">public</span> <span class="nc">String</span> <span class="nf">getAddressNumber</span><span class="o">()</span> <span class="o">{</span>
+        <span class="kt">int</span> <span class="n">addressNumber</span> <span class="o">=</span> <span class="n">buffer</span><span class="o">.</span><span class="na">getInt</span><span class="o">(</span><span class="n">startPosition</span> <span class="o">+</span> <span class="no">ADDRESSNUMBER_OFFSET</span><span class="o">);</span>
+        <span class="k">return</span> <span class="nf">restoreString</span><span class="o">(</span><span class="n">addressNumber</span><span class="o">);</span>
+    <span class="o">}</span>
+
+    <span class="c1">// the rest of getters are omitted</span>
+
+    <span class="kd">private</span> <span class="kt">int</span> <span class="nf">internString</span><span class="o">(</span><span class="nc">String</span> <span class="n">str</span><span class="o">)</span> <span class="o">{</span>
+        <span class="k">return</span> <span class="n">byteArrayPool</span><span class="o">.</span><span class="na">put</span><span class="o">(</span><span class="n">str</span><span class="o">.</span><span class="na">getBytes</span><span class="o">(</span><span class="nc">StandardCharsets</span><span class="o">.</span><span class="na">US_ASCII</span><span class="o">));</span>
+    <span class="o">}</span>
+
+    <span class="nd">@SuppressWarnings</span><span class="o">(</span><span class="s">"byte.array.weakening"</span><span class="o">)</span>
+    <span class="kd">private</span> <span class="nc">String</span> <span class="nf">restoreString</span><span class="o">(</span><span class="kt">int</span> <span class="n">key</span><span class="o">)</span> <span class="o">{</span>
+        <span class="k">return</span> <span class="k">new</span> <span class="nf">String</span><span class="o">(</span><span class="n">byteArrayPool</span><span class="o">.</span><span class="na">get</span><span class="o">(</span><span class="n">key</span><span class="o">),</span> <span class="nc">StandardCharsets</span><span class="o">.</span><span class="na">US_ASCII</span><span class="o">);</span>
+    <span class="o">}</span>
+<span class="o">}</span>
+</code></pre></div></div>
+
+<p>We only need single instance of <code class="highlighter-rouge">OrderView</code> to manipulate orders. When we ask allocator for an order, it would wrap this view around correct memory location and allow us to use order as if it was bog-standard POJO.</p>
+
+<p>This technique is one step away from doing off-heap storage, where byte buffers are replaced with appropriate <code class="highlighter-rouge">DirectBuffer</code> or <code class="highlighter-rouge">MappedByteBuffer</code>. Compression technique can also be more beneficial when applied after this step, because having multiple orders compressed together is more likely to contain repetitive data allowing for better compression.</p>
+
+<p>This storage pattern also has an added performance benefit, as memory access is much more cache-friendly.</p>
+
+<p>This approach lets us fit 814900 orders (+19%), which is 82 bytes (-16) per object.</p>
+
+<h2>Conclusion</h2>
+
+<p>Working through multiple optimization techniques we were able to reduce memory consumption by 300% (4 times). This is quite good result for data, which is not highly compressible. Of course, there is an inherent limit on what can be fit in given unit of memory. This limit is defined by the amount of data represented using minimal viable types, and can be reduced only by data sharing between objects or compression.</p>
+
+<p>For this particular example, we have not reached that limit yet. Higher data density can be achieved by changing key types from <code class="highlighter-rouge">int</code> to 3 bytes (we know we cannot have more than 2^23 object fit into memory anyway) and compressing SLABs.</p>
+        </div><!-- .post-content -->
+        <footer class="post-footer inner-small outer">
+            <div class="post-share">
+                <span>Share:</span>
+                <a class="button button-icon button-fill-horz"
+                    href="https://twitter.com/intent/tweet?text=Reducing%20JVM%20heap%20size,%20part%203:%20Manual%20memory%20management&amp;url=https://romanmarkunas.com/performance/2020/09/10/0012-performance-reducing-jvm-memory-footprint-3-off-heap/"
+                    target="_blank" rel="noopener"><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M23.954 4.569a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.691 8.094 4.066 6.13 1.64 3.161a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.061a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.937 4.937 0 004.604 3.417 9.868 9.868 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.054 0 13.999-7.496 13.999-13.986 0-.209 0-.42-.015-.63a9.936 9.936 0 002.46-2.548l-.047-.02z"/></svg><span
+                        class="screen-reader-text">Share on Twitter</span></a>
+                <a class="button button-icon button-fill-horz"
+                    href="https://www.facebook.com/sharer/sharer.php?u=https://romanmarkunas.com/performance/2020/09/10/0012-performance-reducing-jvm-memory-footprint-3-off-heap/&amp;t=Reducing%20JVM%20heap%20size,%20part%203:%20Manual%20memory%20management"
+                    target="_blank" rel="noopener"><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M23.998 12c0-6.628-5.372-12-11.999-12C5.372 0 0 5.372 0 12c0 5.988 4.388 10.952 10.124 11.852v-8.384H7.078v-3.469h3.046V9.356c0-3.008 1.792-4.669 4.532-4.669 1.313 0 2.686.234 2.686.234v2.953H15.83c-1.49 0-1.955.925-1.955 1.874V12h3.328l-.532 3.469h-2.796v8.384c5.736-.9 10.124-5.864 10.124-11.853z"/></svg><span
+                        class="screen-reader-text">Share on Facebook</span></a>
+            </div>
+<!--            -->
+<!--            <div class="post-tags">-->
+<!--                <span>Tags:</span>-->
+<!--                <a href="/tags/index.html#performance" rel="tag">performance</a><a href="/tags/index.html#java" rel="tag">java</a><a href="/tags/index.html#memory" rel="tag">memory</a>-->
+<!--            </div>-->
+<!--            -->
+        </footer><!-- .post-footer -->
+    </article><!-- .post -->
+    <nav class="post-navigation">
+        <h2 class="screen-reader-text">Read Next</h2>
+        
+        <div class="nav-previous">
+            <div class="nav-inside inner-small outer">
+                
+                <div class="nav-before">Previous</div>
+                <h3 class="nav-title"><a href="/performance/2020/07/01/0011-performance-reducing-jvm-memory-footprint-2-optimizing/">Reducing JVM heap size, part 2: Optimizing</a>
+                </h3>
+                <div class="nav-date">July 1, 2020</div>
+            </div><!-- .nav-inside -->
+        </div><!-- .nav-previous -->
+        
+        
+    </nav><!-- .post-navigation -->
+
+    <div class="comments-area">
+        <div class="inner-small outer">
+<!--            <h2 class="comments-title line-accent">Comments</h2>-->
+            <div id="hyvor-talk-view"></div>
+            <script type="text/javascript">
+                var HYVOR_TALK_WEBSITE = 708; // DO NOT CHANGE THIS
+                var HYVOR_TALK_CONFIG = {
+                    url: 'https://romanmarkunas.com/performance/2020/09/10/0012-performance-reducing-jvm-memory-footprint-3-off-heap/',
+                    id: '/performance/2020/09/10/--0012---performance---reducing-jvm-memory-footprint-3-off-heap'
+                };
+            </script>
+            <script async type="text/javascript" src="//talk.hyvor.com/web-api/embed"></script>
+
+        </div><!-- .inner-small -->
+    </div><!-- .comments-area -->
+
+</div><!-- .primary -->
+
+<aside class="sidebar">
+
+    <section class="widget widget-text">
+        <h2 class="widget-title line-accent">About</h2>
+        <p style="text-align:justify;">
+            I am Roma, a Java developer focusing on high-throughput
+            systems. This blog is a collection of tech, performance and
+            design tips, broadly covering my experience out in the field.
+        </p>
+    </section><!-- .widget-text -->
+
+    
+
+    
+    <section class="widget widget-text">
+        <h2 class="widget-title line-accent">Recommended books</h2>
+<!--        <iframe style="width:120px;height:240px;" marginwidth="0" marginheight="0" scrolling="no" frameborder="0" src="//ws-na.amazon-adsystem.com/widgets/q?ServiceVersion=20070822&OneJS=1&Operation=GetAdHtml&MarketPlace=US&source=ss&ref=as_ss_li_til&ad_type=product_link&tracking_id=devbooks09-20&marketplace=amazon&region=US&placement=0134685997&asins=0134685997&linkId=12e2b168fc942f7f6797d7ad4f4435a4&show_border=true&link_opens_in_new_window=true"></iframe>-->
+        <p style="text-align:center"><a href="https://www.amazon.com/Effective-Java-Joshua-Bloch-dp-0134685997/dp/0134685997/ref=as_li_ss_il?_encoding=UTF8&me=&qid=&linkCode=li3&tag=devbooks09-20&linkId=5d4f23cab29aa16014ab06cd806b9d6b" target="_blank"><img border="0" src="//ws-na.amazon-adsystem.com/widgets/q?_encoding=UTF8&ASIN=0134685997&Format=_SL250_&ID=AsinImage&MarketPlace=US&ServiceVersion=20070822&WS=1&tag=devbooks09-20" ></a><img src="https://ir-na.amazon-adsystem.com/e/ir?t=devbooks09-20&l=li3&o=1&a=0134685997" width="1" height="1" border="0" alt="" style="border:none !important; margin:0px !important;" /></p>
+        <!--        <p><a href="THIS IS JUST TO SWITCH BANNER ON IN sidebar.html" target="_blank" rel="noopener"><img src="/images/banner.jpg" alt="Alt text" /></a></p>-->
+        <p>As an Amazon Associate I earn from qualifying purchases</p>
+    </section><!-- .widget-text-->
+    
+
+    <section class="widget widget-recent-posts">
+        <h2 class="widget-title line-accent">Latest Posts</h2>
+        <ul class="recent-posts">
+            
+            <li class="recent-item"><a href="/performance/2020/09/10/0012-performance-reducing-jvm-memory-footprint-3-off-heap/">Reducing JVM heap size, part 3: Manual memory management</a> <span>September 10, 2020</span></li>
+            
+            <li class="recent-item"><a href="/performance/2020/07/01/0011-performance-reducing-jvm-memory-footprint-2-optimizing/">Reducing JVM heap size, part 2: Optimizing</a> <span>July 1, 2020</span></li>
+            
+            <li class="recent-item"><a href="/performance/2020/07/01/0010-performance-reducing-jvm-memory-footprint-1-profile/">Reducing JVM heap size, part 1: Profiling</a> <span>July 1, 2020</span></li>
+            
+            <li class="recent-item"><a href="/protocols/2020/06/03/0009-protocols-jackson-mixins/">Jackson mix-ins</a> <span>June 3, 2020</span></li>
+            
+            <li class="recent-item"><a href="/microservices/2018/11/15/0008-microservices-dropwizard-101/">Getting started with Dropwizard</a> <span>November 15, 2018</span></li>
+            
+        </ul><!-- .recent-posts -->
+    </section><!-- .widget-recent-posts -->
+
+    <!--Create a sorted array of tags-->
+    
+    
+    <section class="widget widget-tags">
+        <h2 class="widget-title line-accent">Tags</h2>
+        <div class="tagcloud">
+            <a href="/tags/#build">build</a><a href="/tags/#concurrency">concurrency</a><a href="/tags/#core+java">core java</a><a href="/tags/#coroutines">coroutines</a><a href="/tags/#design">design</a><a href="/tags/#dropwizard">dropwizard</a><a href="/tags/#gradle">gradle</a><a href="/tags/#jackson">jackson</a><a href="/tags/#java">java</a><a href="/tags/#kafka">kafka</a><a href="/tags/#low+latency">low latency</a><a href="/tags/#memory">memory</a><a href="/tags/#messaging">messaging</a><a href="/tags/#microservices">microservices</a><a href="/tags/#multithreading">multithreading</a><a href="/tags/#non-blocking+IO">non-blocking IO</a><a href="/tags/#performance">performance</a><a href="/tags/#protocols">protocols</a><a href="/tags/#quasar">quasar</a>
+        </div><!-- .tagcloud -->
+    </section><!-- .widget -->
+
+</aside><!-- .sidebar -->
+
+
+                </main><!-- .site-main -->
+            </div><!-- .inner -->
+        </div><!-- .site-content -->
+        <footer class="site-footer outer">
+    <div class="inner">
+        <div class="site-info">
+            <a href="#top" id="js-top-link" class="top-link button button-icon button-fill-horz"><span class="screen-reader-text">Back to the top</span><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M3.44 18.359l8.56-8.541 8.56 8.541 2.63-2.63-11.189-11.189-11.189 11.189z"></path></svg></a>
+        </div><!-- .site-info -->
+    </div><!-- .inner -->
+</footer><!-- .site-footer -->
+
+    </div><!-- .site -->
+    
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-117056147-2"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-117056147-2');
+</script>
+
+    
+    <script src="/js/scripts.js"></script>
+</body>
+</html>

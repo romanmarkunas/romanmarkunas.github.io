@@ -95,7 +95,7 @@
             <time class="published" datetime="">2020-07-01</time><span class="reading-time" title="Estimated read time">
   
   
-    	&mdash; 11 min read
+    	&mdash; 12 min read
   
 </span>
 
@@ -118,25 +118,25 @@
 
 <p>In part 2, we will take a look on couple of techniques used to reduce JVM heap size. <!--more--> The techniques listed in the order of least invasive to most, so that optimization does just enough for application to work and keeps it as maintainable as possible. The example application can be found in <a href="/performance/2020/07/01/0010-performance-reducing-jvm-memory-footprint-1-profile/">part 1</a> or in <a href="https://github.com/romanmarkunas-com/0010-memory-optimization">example source code</a>.</p>
 
-<h2>Memory optimisation - data structures</h2>
+<h2>Memory efficient data structures</h2>
 
-<p>As mentioned before we could fit around 204500 orders/54600 users into 64M heap. Let’s take a look on how we can improve this.</p>
+<p>As mentioned in part 1 we could fit around 204500 orders/54600 users into 64M heap. Let’s take a look on how we can improve this.</p>
 
 <p>The least intrusive change is usually changing data structures that hold objects. These usually conform to some of Java collection interfaces and changing them would not introduce much change in the code. Let’s see how much memory we can save by doing so.</p>
 
-<p>First obvious candidate would be <code class="highlighter-rouge">ArrayList</code> as it’s no arg constructor would create a list which will have capacity of 10 after first insertion. However we have around 200K orders across 50K users, which brings the average number of orders per list to 4. We can be aggressive and set that size to 1 initially. That gives us 209000 orders/54900 users. Easy win, but only 2%.</p>
+<p>The first obvious candidate would be <code class="highlighter-rouge">ArrayList</code> as it’s no arg constructor would create a list which will have capacity of 10 after first insertion. However, we have around 200K orders across 50K users, which brings the average number of orders per list to 4. We can be aggressive and set that size to 1 initially. That gives us 209000 orders/54900 users - an easy win, but only 2%.</p>
 
-<p>Second optimization has to do with java <code class="highlighter-rouge">HashMap</code>, which uses simple chaining implementation. That is memory efficient only if map key collision rate is low. In our case both order and user ids is about 18% (<a href="https://github.com/romanmarkunas-com/0010-memory-optimization/blob/master/src/test/java/com/romanmarkunas/blog/memory/example1/HashCollisionTest.java">see this test</a>), so there might be potential here. Maps that use open addressing implementation remain memory efficient even with high collision rates. Any open addressing implementation should do, as collision resolution strategy (probing, Robin-Hood, cuckoo, etc) should not significantly impact memory footprint.</p>
+<p>Second optimization has to do with java <code class="highlighter-rouge">HashMap</code>, which uses simple chaining implementation. That is memory efficient only if map key collision rate is low. In our case both order and user ids collision rate is about 18% (<a href="https://github.com/romanmarkunas-com/0010-memory-optimization/blob/master/src/test/java/com/romanmarkunas/blog/memory/example1/HashCollisionTest.java">see this test</a>), so there might be potential here. Maps that use open addressing implementation remain memory efficient even with high collision rates. Any open addressing implementation should do, as collision resolution strategy (probing, Robin-Hood, cuckoo, etc) should not significantly impact memory footprint.</p>
 
 <p>I’ll use Agrona <code class="highlighter-rouge">Object2ObjectHashMap</code> to test this. Agrona’s implementation also does not create extra <code class="highlighter-rouge">Node</code> objects, as it stores keys and values as even and odd indexes in the same array. Changing map implementation (<a href="https://github.com/romanmarkunas-com/0010-memory-optimization/blob/3550717a4e365a87f4000c6ea703a2c4f3d847d1/src/test/java/com/romanmarkunas/blog/memory/OrderStoreMainTest.java#L141">example 8</a>) gives us 231500 orders/56000 users, which is significant 11% increase.</p>
 
-<h2>Memory optimisation - using minimal types to store data</h2>
+<h2>Using minimal types to store data</h2>
 
 <p>Let’s take a look at <code class="highlighter-rouge">Order</code> objects themselves.</p>
 
 <p>First step is to look at the structure of stored values. We want them to have as flat structure as possible, minimizing extra object header overhead. In our case we would just get rid of a boxed type. This brings us to 245900 orders/56600 users, which is another 6%. Quite significant increase for this little work.</p>
 
-<p>Now when the low hanging fruit was plucked, we should take a look at out value type and evaluate if we represent data with appropriate types.</p>
+<p>Now when the low hanging fruit has been plucked, we should take a closer look at <code class="highlighter-rouge">Order</code> and evaluate if we represent data with appropriate types.</p>
 
 <p>In or case, we have another field which is secretly boxed, which is <code class="highlighter-rouge">Order#id</code>. At the moment, this field is just a number, but wrapped as <code class="highlighter-rouge">String</code>. Most times there is no need for id field to be a string, as we can represent enough unique identifiers with a simple number (or a tuple of numbers) and have a <code class="highlighter-rouge">Long</code> keys in a map:</p>
 
@@ -156,16 +156,16 @@
 <div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nc">Map</span><span class="o">&lt;</span><span class="nc">Long</span><span class="o">,</span> <span class="nc">Order</span><span class="o">&gt;</span> <span class="n">ordersById</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">Object2ObjectHashMap</span><span class="o">&lt;&gt;();</span>
 </code></pre></div></div>
 
-<p>By doing so we can fit 276100 order/57900 users, that’s another 12% up. However, we are now forced to waste some memory for autoboxing <code class="highlighter-rouge">long</code>, which we can fix by using primitive collection. There are ready libraries to do this, for example Trove collections. Here I’ll use Agrona, since I’ve already used it in example before:</p>
+<p>By doing this, we can fit 276100 order/57900 users, and that’s another 12% increase. However, we are now forced to waste some memory for autoboxing <code class="highlighter-rouge">long</code>, which we can fix by using primitive collection. There are ready libraries to do this, for example Trove collections. Here I’ll use Agrona, since I’ve already used it in example before:</p>
 
 <div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nc">Long2ObjectHashMap</span><span class="o">&lt;</span><span class="nc">Order</span><span class="o">&gt;</span> <span class="n">ordersById</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">Long2ObjectHashMap</span><span class="o">&lt;&gt;();</span>
 </code></pre></div></div>
 
 <p>That’s 288300 orders/58300 users, which is extra 4%, and the final code can be observed in <a href="https://github.com/romanmarkunas-com/0010-memory-optimization/blob/3550717a4e365a87f4000c6ea703a2c4f3d847d1/src/test/java/com/romanmarkunas/blog/memory/OrderStoreMainTest.java#L151">example 9</a>.</p>
 
-<h2>Memory optimisation - shared object pool</h2>
+<h2>Data tokenization and shared object pool</h2>
 
-<p>At this point most of memory would be occupied by address <code class="highlighter-rouge">String</code>. The problem here is that addresses contain lots of repeating information: cities, post codes, street numbers, names and surnames, etc. What we can try to do, is to break address apart into these components and share repeating instances between <code class="highlighter-rouge">Order</code> values. JVM even has built in <code class="highlighter-rouge">String</code> pool for us to use!</p>
+<p>At this point most of the memory would be occupied by address <code class="highlighter-rouge">String</code>. The problem here is that addresses contain lots of repeating information: cities, post codes, street numbers, names and surnames, etc. What we can try to do, is to break address apart into separate components (tokens) and share repeating instances between <code class="highlighter-rouge">Order</code> values. JVM even has built in <code class="highlighter-rouge">String</code> pool for us to use!</p>
 
 <p>I’ve decided to break up address like this:</p>
 
@@ -186,7 +186,7 @@
 <span class="o">}</span>
 </code></pre></div></div>
 
-<p>Without pooling we can only fit 144200 orders/50000 users into memory, which again proves that object header overhead is very significant. It might seem like a step back, but let’s turn <code class="highlighter-rouge">String</code> pooling on in <code class="highlighter-rouge">Order</code> constructor (<a href="https://github.com/romanmarkunas-com/0010-memory-optimization/blob/3550717a4e365a87f4000c6ea703a2c4f3d847d1/src/test/java/com/romanmarkunas/blog/memory/OrderStoreMainTest.java#L161">example 10</a>):</p>
+<p>Without pooling, we can only fit 144200 orders/50000 users into memory, which again proves that object header overhead is very significant. It might seem like a step back, but let’s turn <code class="highlighter-rouge">String</code> pooling on in <code class="highlighter-rouge">Order</code> constructor (<a href="https://github.com/romanmarkunas-com/0010-memory-optimization/blob/3550717a4e365a87f4000c6ea703a2c4f3d847d1/src/test/java/com/romanmarkunas/blog/memory/OrderStoreMainTest.java#L161">example 10</a>):</p>
 
 <div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nd">@JsonCreator</span>
 <span class="kd">public</span> <span class="nf">Order</span><span class="o">(</span>
@@ -205,11 +205,11 @@
 <span class="o">}</span>
 </code></pre></div></div>
 
-<p>which let’s us fit 386000 orders/61000 users into memory (+34%)! JVM since version 7 does not allocate interned <code class="highlighter-rouge">String</code> objects in native memory, therefore this gain is fair comparison (this can be double checked by running JVM with flags <code class="highlighter-rouge">-XX:+UnlockDiagnosticVMOptions -XX:NativeMemoryTracking=summary -XX:+PrintNMTStatistics</code> and inspecting memory usage).</p>
+<p>which lets us fit 386000 orders/61000 users into memory (+34%)! JVMs with version 7 and higher do not allocate interned <code class="highlighter-rouge">String</code> objects in native memory, therefore this gain is fair comparison (this can be confirmed by running JVM with flags <code class="highlighter-rouge">-XX:+UnlockDiagnosticVMOptions</code>, <code class="highlighter-rouge">-XX:NativeMemoryTracking=summary</code>, <code class="highlighter-rouge">-XX:+PrintNMTStatistics</code> and inspecting memory usage).</p>
 
-<p>As far as I know, <code class="highlighter-rouge">String</code> pool is the only JVM pool which is usable by application, because <code class="highlighter-rouge">Integer</code> pool goes only up to 128. However, it shouldn’t be hard to pool any user defined object. Usability of this method depends on how much of data is repeating and how it could be split and the object overhead of internal pool implementation (e.g. be careful with tree-like collections which allocate extra object for every node).</p>
+<p>As far as I know, <code class="highlighter-rouge">String</code> pool is the only JVM pool which is usable to applications (in contrast, <code class="highlighter-rouge">Integer</code> pool goes only up to number 128). However, it shouldn’t be hard to pool any user defined object. Usability of this method depends on how much of data is repeating and how it could be split. Developers, considering this technique, should bear in mind object overhead of internal pool implementation (e.g. be careful with tree-like collections which allocate extra objects for every node).</p>
 
-<h2>Memory optimisation - data encoding</h2>
+<h2>Data encoding</h2>
 
 <p>Compression approach can save some memory at the expense of processing power and code maintainability as switching form JDK types to custom ones limits the usage of library methods.</p>
 
@@ -221,7 +221,7 @@
             <span class="c1">// rest omitted</span>
 </code></pre></div></div>
 
-<p>and we only need to store reference to string as a map key:</p>
+<p>and we only need to store reference to string as a map key (<code class="highlighter-rouge">byte[]</code> are not suitable as map keys as they do not override hashCode/equals properly and are mutable):</p>
 
 <div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">ordersByUser</span>
         <span class="o">.</span><span class="na">computeIfAbsent</span><span class="o">(</span>
@@ -233,9 +233,9 @@
 
 <p>More compact encoding (<a href="https://github.com/romanmarkunas-com/0010-memory-optimization/blob/3550717a4e365a87f4000c6ea703a2c4f3d847d1/src/test/java/com/romanmarkunas/blog/memory/OrderStoreMainTest.java#L175">example 11</a>) and not storing extra reference on <code class="highlighter-rouge">Order</code> objects allows us to stuff JVM with 481300 orders/62800 users (+24%).</p>
 
-<h2>Memory optimisation - ditching references</h2>
+<h2>Ditching unnecessary references</h2>
 
-<p>Now we can try to get rid of extra <code class="highlighter-rouge">String</code> object references and store only <code class="highlighter-rouge">byte[]</code>. If we ever need a <code class="highlighter-rouge">String</code> object later in code we can allocate short-lived object for that operation or use a view wrapper. This is somewhat risky, because arrays in Java are not immutable, but let’s see how much memory we can save that way.</p>
+<p>Now we can try to get rid of extra <code class="highlighter-rouge">String</code> object references and store only <code class="highlighter-rouge">byte[]</code>. If we ever need a <code class="highlighter-rouge">String</code> object later in code we can allocate a short-lived object for that operation or use a view wrapper. This is somewhat risky, because arrays in Java are not immutable, but let’s see how much memory we can save that way.</p>
 
 <p>Simple type replacement, however, would not work here as our strings are pooled objects. Therefore, we need to roll out our own pool for <code class="highlighter-rouge">byte[]</code>. This is a bit tricky in Java, cause Java arrays do not properly implement <code class="highlighter-rouge">hashCode</code> or <code class="highlighter-rouge">equals</code>, but we can leverage array order and <code class="highlighter-rouge">TreeSet</code>:</p>
 
@@ -267,9 +267,16 @@
 <span class="o">)</span>
 </code></pre></div></div>
 
-<p>This approach (<a href="https://github.com/romanmarkunas-com/0010-memory-optimization/blob/3550717a4e365a87f4000c6ea703a2c4f3d847d1/src/test/java/com/romanmarkunas/blog/memory/OrderStoreMainTest.java#L186">example 12</a>) doesn’t help us much, because by getting rid of some references in <code class="highlighter-rouge">Order</code> object, we’ve created many more references within <code class="highlighter-rouge">TreeSet</code>, and thus for this use-case we can actually fit less objects in memory. Even linear-time array-based implementation does not reduce memory footprint much, which means, that for our data structure this optimization is not useful.</p>
+<div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nc">ObjectMapper</span> <span class="n">mapper</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">ObjectMapper</span><span class="o">();</span>
+<span class="n">mapper</span><span class="o">.</span><span class="na">setInjectableValues</span><span class="o">(</span><span class="k">new</span> <span class="nc">InjectableValues</span><span class="o">.</span><span class="na">Std</span><span class="o">().</span><span class="na">addValue</span><span class="o">(</span>
+        <span class="nc">ByteArrayPool</span><span class="o">.</span><span class="na">class</span><span class="o">,</span> 
+        <span class="k">new</span> <span class="nf">TreeBasedByteArrayPool</span><span class="o">()</span>
+<span class="o">));</span>
+</code></pre></div></div>
 
-<h2>Memory optimisation - object compression</h2>
+<p>This approach (<a href="https://github.com/romanmarkunas-com/0010-memory-optimization/blob/3550717a4e365a87f4000c6ea703a2c4f3d847d1/src/test/java/com/romanmarkunas/blog/memory/OrderStoreMainTest.java#L186">example 12</a>) doesn’t help us much, because by getting rid of some references in <code class="highlighter-rouge">Order</code> object, we’ve created many more references within <code class="highlighter-rouge">TreeSet</code>, and thus for this use-case we can actually fit fewer objects in memory. Even linear-time array-based implementation does not reduce memory footprint much, which means, that for our data structure this tree-like pool implementation is not sufficient. More elaborate pool implementation, based on open-addressing, is used in further <a href="https://github.com/romanmarkunas-com/0010-memory-optimization/blob/4d945595b879dde6395ecb619f613083a113f7d3/src/main/java/com/romanmarkunas/blog/memory/example14/PooledByteArrayMap.java#L7">example 14</a> of <a href="/performance/2020/09/10/0012-performance-reducing-jvm-memory-footprint-3-off-heap/">part 3</a>.</p>
+
+<h2>Object compression</h2>
 
 <p>Now what if we could compress the whole <code class="highlighter-rouge">Order</code> object? In our case we must only compress fields which are not shared between <code class="highlighter-rouge">Order</code> instances (non-address fields are <code class="highlighter-rouge">transient</code>), hence we end up with something like this (<a href="https://github.com/romanmarkunas-com/0010-memory-optimization/blob/3550717a4e365a87f4000c6ea703a2c4f3d847d1/src/test/java/com/romanmarkunas/blog/memory/OrderStoreMainTest.java#L197">example 13</a>):</p>
 
@@ -303,11 +310,13 @@
 <span class="o">}</span>
 </code></pre></div></div>
 
-<p>In our case this also does not give any memory reduction, as we are only compressing couple of primitive fields. This technique is much more useful where it is impossible to share much data between retained objects.</p>
+<p>In our case this also does not give any memory reduction, as we are only compressing couple of primitive fields. This technique is much more useful where it is impossible to share much data between retained objects or object does not contain references. This technique can prove more useful in conjunction with manual memory management described in next <a href="/performance/2020/09/10/0012-performance-reducing-jvm-memory-footprint-3-off-heap/">part</a>.</p>
 
 <h2>Conclusion</h2>
 
-<p>Using appropriate data structures, variable types, compression and pooling we have reduced memory consumption by 135% (fitting 481300 orders instead of 204500). More memory usage reduction can be achieved by bulk compressing larger chunks of data together or moving off-heap. These however impact code and architecture quite a bit and must be considered along with data sharding approaches.</p>
+<p>Using appropriate data structures, variable types, compression and pooling we have reduced memory consumption by 135% or 2.35 times (fitting 481300 orders instead of 204500).</p>
+
+<p>More memory usage reduction can be achieved by bulk compressing larger chunks of data together or moving off-heap, which is covered in <a href="/performance/2020/09/10/0012-performance-reducing-jvm-memory-footprint-3-off-heap/">part 3</a>. These however impact code and architecture quite a bit and must be considered along with data sharding approaches.</p>
         </div><!-- .post-content -->
         <footer class="post-footer inner-small outer">
             <div class="post-share">
@@ -342,6 +351,15 @@
             </div><!-- .nav-inside -->
         </div><!-- .nav-previous -->
         
+        
+        <div class="nav-next">
+            <div class="nav-inside inner-small outer">
+                
+                <div class="nav-before">Next</div>
+                <h3 class="nav-title"><a href="/performance/2020/09/10/0012-performance-reducing-jvm-memory-footprint-3-off-heap/">Reducing JVM heap size, part 3: Manual memory management</a></h3>
+                <div class="nav-date">September 10, 2020</div>
+            </div><!-- .nav-inside -->
+        </div><!-- .nav-next -->
         
     </nav><!-- .post-navigation -->
 
@@ -390,6 +408,8 @@
         <h2 class="widget-title line-accent">Latest Posts</h2>
         <ul class="recent-posts">
             
+            <li class="recent-item"><a href="/performance/2020/09/10/0012-performance-reducing-jvm-memory-footprint-3-off-heap/">Reducing JVM heap size, part 3: Manual memory management</a> <span>September 10, 2020</span></li>
+            
             <li class="recent-item"><a href="/performance/2020/07/01/0011-performance-reducing-jvm-memory-footprint-2-optimizing/">Reducing JVM heap size, part 2: Optimizing</a> <span>July 1, 2020</span></li>
             
             <li class="recent-item"><a href="/performance/2020/07/01/0010-performance-reducing-jvm-memory-footprint-1-profile/">Reducing JVM heap size, part 1: Profiling</a> <span>July 1, 2020</span></li>
@@ -397,8 +417,6 @@
             <li class="recent-item"><a href="/protocols/2020/06/03/0009-protocols-jackson-mixins/">Jackson mix-ins</a> <span>June 3, 2020</span></li>
             
             <li class="recent-item"><a href="/microservices/2018/11/15/0008-microservices-dropwizard-101/">Getting started with Dropwizard</a> <span>November 15, 2018</span></li>
-            
-            <li class="recent-item"><a href="/build/2018/11/13/0007-build-gradle-fat-jars/">Creating fat JARs with gradle</a> <span>November 13, 2018</span></li>
             
         </ul><!-- .recent-posts -->
     </section><!-- .widget-recent-posts -->

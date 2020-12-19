@@ -5,9 +5,298 @@
         <description>Java, performance and design tips by Roman Markunas (Romans Markuns)</description>
         <link>https://romanmarkunas.com/</link>
         <atom:link href="https://romanmarkunas.com/feed.xml" rel="self" type="application/rss+xml"/>
-        <pubDate>Mon, 07 Sep 2020 22:04:32 +0100</pubDate>
-        <lastBuildDate>Mon, 07 Sep 2020 22:04:32 +0100</lastBuildDate>
+        <pubDate>Sat, 19 Dec 2020 16:39:50 +0000</pubDate>
+        <lastBuildDate>Sat, 19 Dec 2020 16:39:50 +0000</lastBuildDate>
         <generator>Jekyll v4.0.1</generator>
+        
+            <item>
+                <title>Reducing JVM heap size, part 3: Manual memory management</title>
+                <description>&lt;p&gt;In this article we will look at different ways to figure out and fix unnecessary memory consumption by JVM. This is useful for JVM applications that store huge amount of data in memory and can help avoid OutOfMemoryError if application data cannot be partitioned and scaled horizontally.&lt;/p&gt;
+
+&lt;p&gt;In part 3, we will take a look on more advanced techniques used to reduce JVM heap size, which involves manual memory management. &lt;!--more--&gt; This is the last part of series following &lt;a href=&quot;/performance/2020/07/01/0011-performance-reducing-jvm-memory-footprint-2-optimizing/&quot;&gt;part 2&lt;/a&gt;.&lt;/p&gt;
+
+&lt;h2&gt;Space occupied by Java object&lt;/h2&gt;
+
+&lt;p&gt;Our best result in part 2 was 481300 orders on a heap of 64MB, in an &lt;a href=&quot;https://github.com/romanmarkunas-com/0010-memory-optimization/blob/4ea92619c3de0732fa11d2ed8a3454323d2e57dc/src/test/java/com/romanmarkunas/blog/memory/OrderStoreMainTest.java#L179&quot;&gt;example 11&lt;/a&gt;. This is on average 139 bytes per object. At this point we optimised the encoding of data and extra memory required by data structures. Let’s look at the heap dump and see how much space every &lt;code class=&quot;highlighter-rouge&quot;&gt;Order&lt;/code&gt; object is taking. Eclipse MAT is claiming it is 56 bytes, let’s see how this adds up:&lt;/p&gt;
+
+&lt;table&gt;
+  &lt;thead&gt;
+    &lt;tr&gt;
+      &lt;th&gt;Field name&lt;/th&gt;
+      &lt;th&gt;Field type&lt;/th&gt;
+      &lt;th style=&quot;text-align: right&quot;&gt;Field size (bytes)&lt;/th&gt;
+    &lt;/tr&gt;
+  &lt;/thead&gt;
+  &lt;tbody&gt;
+    &lt;tr&gt;
+      &lt;td&gt;id&lt;/td&gt;
+      &lt;td&gt;long&lt;/td&gt;
+      &lt;td style=&quot;text-align: right&quot;&gt;8&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;user&lt;/td&gt;
+      &lt;td&gt;reference (byte[])&lt;/td&gt;
+      &lt;td style=&quot;text-align: right&quot;&gt;4&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;articleNr&lt;/td&gt;
+      &lt;td&gt;int&lt;/td&gt;
+      &lt;td style=&quot;text-align: right&quot;&gt;4&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;count&lt;/td&gt;
+      &lt;td&gt;int&lt;/td&gt;
+      &lt;td style=&quot;text-align: right&quot;&gt;4&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;pricePence&lt;/td&gt;
+      &lt;td&gt;int&lt;/td&gt;
+      &lt;td style=&quot;text-align: right&quot;&gt;4&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;addressNumber&lt;/td&gt;
+      &lt;td&gt;reference (String)&lt;/td&gt;
+      &lt;td style=&quot;text-align: right&quot;&gt;4&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;addressStreet&lt;/td&gt;
+      &lt;td&gt;reference (String)&lt;/td&gt;
+      &lt;td style=&quot;text-align: right&quot;&gt;4&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;addressCity&lt;/td&gt;
+      &lt;td&gt;reference (String)&lt;/td&gt;
+      &lt;td style=&quot;text-align: right&quot;&gt;4&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;addressRegion&lt;/td&gt;
+      &lt;td&gt;reference (String)&lt;/td&gt;
+      &lt;td style=&quot;text-align: right&quot;&gt;4&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;addressPostCode&lt;/td&gt;
+      &lt;td&gt;reference (String)&lt;/td&gt;
+      &lt;td style=&quot;text-align: right&quot;&gt;4&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;TOTAL&lt;/td&gt;
+      &lt;td&gt; &lt;/td&gt;
+      &lt;td style=&quot;text-align: right&quot;&gt;44&lt;/td&gt;
+    &lt;/tr&gt;
+  &lt;/tbody&gt;
+&lt;/table&gt;
+
+&lt;p&gt;However, this is not a full picture as &lt;code class=&quot;highlighter-rouge&quot;&gt;String&lt;/code&gt;, for example, is an indirection over &lt;code class=&quot;highlighter-rouge&quot;&gt;byte[]&lt;/code&gt; and ads extra reference, byte and int field for each object.&lt;/p&gt;
+
+&lt;p&gt;Therefore, we are wasting:&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;5x (4 + 1 + 4) = 45 bytes for &lt;code class=&quot;highlighter-rouge&quot;&gt;String&lt;/code&gt; objects we could be leaving off as &lt;code class=&quot;highlighter-rouge&quot;&gt;byte[]&lt;/code&gt;&lt;/li&gt;
+  &lt;li&gt;12 bytes of object header&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;Let’s try to tackle these two.&lt;/p&gt;
+
+&lt;h2&gt;Pooling byte arrays&lt;/h2&gt;
+
+&lt;p&gt;In previous part we were able to deduplicate &lt;code class=&quot;highlighter-rouge&quot;&gt;String&lt;/code&gt; instances by using JVM’s pool. If we are to get rid of strings, we have to replace JVM pool with a custom one, handling &lt;code class=&quot;highlighter-rouge&quot;&gt;byte[]&lt;/code&gt; deduplication for us.&lt;/p&gt;
+
+&lt;p&gt;However, I would like to take this a step further, as eventually we want to store &lt;code class=&quot;highlighter-rouge&quot;&gt;Order&lt;/code&gt; object off heap. This means that we must avoid storing references on an &lt;code class=&quot;highlighter-rouge&quot;&gt;Order&lt;/code&gt;. Object references in Java can be mutated by JVM during GC cycles and if we want to avoid serializing duplicate string values, we must replace &lt;code class=&quot;highlighter-rouge&quot;&gt;byte[]&lt;/code&gt; references with keys to byte array pool.&lt;/p&gt;
+
+&lt;p&gt;In previous part we already tried to pool &lt;code class=&quot;highlighter-rouge&quot;&gt;byte[]&lt;/code&gt; (see &lt;a href=&quot;https://github.com/romanmarkunas-com/0010-memory-optimization/blob/3550717a4e365a87f4000c6ea703a2c4f3d847d1/src/test/java/com/romanmarkunas/blog/memory/OrderStoreMainTest.java#L186&quot;&gt;example 12&lt;/a&gt;), but did not succeed because of tree-structure wrapper overheads. To make this pooling worthwhile, we can use open-addressing implementation with the following interface:&lt;/p&gt;
+
+&lt;div class=&quot;language-java highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;kd&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;class&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;PooledByteArrayMap&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;kd&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;put&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;byte&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;[]&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;value&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+    &lt;span class=&quot;kd&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;byte&lt;/span&gt; &lt;span class=&quot;nd&quot;&gt;@ImmutableByteArray&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;[]&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;get&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;key&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+    &lt;span class=&quot;kd&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;void&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;free&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;key&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;This data structure is efficient in deduplicating byte arrays with time complexity of a hash map and lookup/remove complexity of O(1). Source code is available &lt;a href=&quot;https://github.com/romanmarkunas-com/0010-memory-optimization/blob/4d945595b879dde6395ecb619f613083a113f7d3/src/main/java/com/romanmarkunas/blog/memory/example14/PooledByteArrayMap.java#L7&quot;&gt;here&lt;/a&gt;.&lt;/p&gt;
+
+&lt;p&gt;Using such pool, we are left without any references in &lt;code class=&quot;highlighter-rouge&quot;&gt;Order&lt;/code&gt; object, but we can create temporary &lt;code class=&quot;highlighter-rouge&quot;&gt;String&lt;/code&gt; objects during order processing:&lt;/p&gt;
+
+&lt;div class=&quot;language-java highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;kd&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;final&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;class&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Order&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+
+    &lt;span class=&quot;kd&quot;&gt;private&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;final&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;long&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;id&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;kd&quot;&gt;private&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;final&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;user&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;kd&quot;&gt;private&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;final&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;articleNr&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;kd&quot;&gt;private&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;final&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;count&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;kd&quot;&gt;private&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;final&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;pricePence&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;kd&quot;&gt;private&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;final&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;addressNumber&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;kd&quot;&gt;private&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;final&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;addressStreet&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;kd&quot;&gt;private&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;final&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;addressCity&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;kd&quot;&gt;private&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;final&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;addressRegion&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;kd&quot;&gt;private&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;final&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;addressPostCode&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+
+    &lt;span class=&quot;nd&quot;&gt;@JsonCreator&lt;/span&gt;
+    &lt;span class=&quot;kd&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;Order&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;
+            &lt;span class=&quot;nd&quot;&gt;@JsonProperty&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;id&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;long&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;id&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt;
+            &lt;span class=&quot;nd&quot;&gt;@JsonProperty&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;user&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;byte&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;[]&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;user&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt;
+            &lt;span class=&quot;c1&quot;&gt;// other fields omitted&lt;/span&gt;
+            &lt;span class=&quot;nd&quot;&gt;@JacksonInject&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;PooledByteArrayMap&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;byteArrayPool&lt;/span&gt;
+    &lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;this&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;id&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;id&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;this&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;user&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;byteArrayPool&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;put&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;user&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+        &lt;span class=&quot;c1&quot;&gt;// other fields omitted&lt;/span&gt;
+    &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+
+    &lt;span class=&quot;c1&quot;&gt;// other getters omitted&lt;/span&gt;
+
+    &lt;span class=&quot;kd&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;String&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;getAddressPostCode&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;PooledByteArrayMap&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;byteArrayPool&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;restoreString&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;addressPostCode&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;byteArrayPool&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+    &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;    
+
+    &lt;span class=&quot;nd&quot;&gt;@SuppressWarnings&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;byte.array.weakening&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+    &lt;span class=&quot;kd&quot;&gt;private&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;String&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;restoreString&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;key&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;PooledByteArrayMap&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;byteArrayPool&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;String&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;byteArrayPool&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;get&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;key&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;),&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;StandardCharsets&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;US_ASCII&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+    &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;With this approach we can fit 576700 orders (+20%) into memory, which is about 116 bytes (-23) per object. We were not able to get all 45 bytes worth of gain by ditching &lt;code class=&quot;highlighter-rouge&quot;&gt;String&lt;/code&gt; due to some overheads of a pool, but it is an improvement nonetheless.&lt;/p&gt;
+
+&lt;p&gt;This change has 2 unintended consequences which are discussed below.&lt;/p&gt;
+
+&lt;h2&gt;Replacing object encapsulation guarantees with compile checks&lt;/h2&gt;
+
+&lt;p&gt;One of key features of Java standard library &lt;code class=&quot;highlighter-rouge&quot;&gt;String&lt;/code&gt; class is its immutability. By removing it altogether we are not protected from accidentally changing &lt;code class=&quot;highlighter-rouge&quot;&gt;byte[]&lt;/code&gt; content, which would alter results of business transactions and compromise integrity of pool. The cost of safety was too high to bear at runtime, however we can move that cost to compile time.&lt;/p&gt;
+
+&lt;p&gt;Since Java 8, &lt;code class=&quot;highlighter-rouge&quot;&gt;javac&lt;/code&gt; allows adding custom type checkers which would be run as part of code compilation. For example, this allows developers to annotate certain variables as not nullable and avoid pesky null checks throughout the code. Similarly, we can declare all &lt;code class=&quot;highlighter-rouge&quot;&gt;byte[]&lt;/code&gt; instances, returned by the pool immutable using annotation:&lt;/p&gt;
+
+&lt;div class=&quot;language-java highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;kd&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;byte&lt;/span&gt; &lt;span class=&quot;nd&quot;&gt;@ImmutableByteArray&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;[]&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;get&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;key&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;I’ve decided to implement such type as a pair of annotation/checker within &lt;a href=&quot;https://checkerframework.org/&quot;&gt;Checker Framework&lt;/a&gt;. This ensures that all attempts to modify &lt;code class=&quot;highlighter-rouge&quot;&gt;byte[]&lt;/code&gt; returned by pool or to downcast them to unannotated version would be flagged as compiler error. Checker source can be found &lt;a href=&quot;https://github.com/romanmarkunas-com/0010-memory-optimization/blob/4d945595b879dde6395ecb619f613083a113f7d3/immutable-byte-array-checker/src/main/java/com/romanmarkunas/blog/memory/example14/checkers/ImmutableByteArray.java#L11&quot;&gt;here&lt;/a&gt;.&lt;/p&gt;
+
+&lt;p&gt;This approach gives back confidence, without incurring run time costs. Similar approaches can be used to replace type-safe wrapper objects in Java (AKA tiny-types) with primitives to avoid runtime costs and maintain type-safety.&lt;/p&gt;
+
+&lt;h2&gt;Array utilisation&lt;/h2&gt;
+
+&lt;p&gt;For heap sizes like in this scenario there is another important consideration to take into account. Running previous example 14 with GC logging enabled we can see heap statistics at point of failure:&lt;/p&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;[33.920s][info][gc,heap,exit   ] Heap
+[33.920s][info][gc,heap,exit   ]  garbage-first heap   total 65536K, used 61378K [0x00000000fc000000, 0x0000000100000000)
+[33.920s][info][gc,heap,exit   ]   region size 1024K, 1 young (1024K), 0 survivors (0K)
+[33.920s][info][gc,heap,exit   ]  Metaspace       used 12518K, capacity 12795K, committed 13056K, reserved 1060864K
+[33.920s][info][gc,heap,exit   ]   class space    used 1139K, capacity 1197K, committed 1280K, reserved 1048576K
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;From this we can observe that about 4MB of heap space was not utilised. One reason for this is humongous object allocation. Every time JVM with G1 GC tries to allocate an object with size larger than region size (1MB in this case) it will combine multiple regions, which then will be used solely by that humongous object. A few megabytes wasted on a multiple gigabyte heap may be unnoticed, however for 64MB heap it makes a considerable difference.&lt;/p&gt;
+
+&lt;p&gt;Other thing to consider is array list utilisation. Some space can be wasted, if the list get resized too early and underlying array grows prematurely exacerbating issues with heap fragmentation. In our case, array lists get resized at 50% capacity (default for Agrona collections).&lt;/p&gt;
+
+&lt;p&gt;To counter all these effects, I’ve tried following improvements (see &lt;a href=&quot;https://github.com/romanmarkunas-com/0010-memory-optimization/blob/4d945595b879dde6395ecb619f613083a113f7d3/src/test/java/com/romanmarkunas/blog/memory/OrderStoreMainTest.java#L225&quot;&gt;example 15&lt;/a&gt;):&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;changing load factor for collections to 85%&lt;/li&gt;
+  &lt;li&gt;custom byte array pool would split underlying arrays into smaller chunks and allocate an extra chunk on resize&lt;/li&gt;
+  &lt;li&gt;do not use G1 to reduce memory fragmentation due to humongous allocations. This will not alleviate fragmentation completely as every GC has trouble defragmenting memory with object sizes approaching 10% of total heap. I’ve used serial GC, because for small heaps CMS and throughput collectors can take very long time to fail.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;This allows fitting 686200 orders (+19%) into memory, which is about 98 bytes (-18) per object.&lt;/p&gt;
+
+&lt;h2&gt;SLAB allocation&lt;/h2&gt;
+
+&lt;p&gt;Since &lt;code class=&quot;highlighter-rouge&quot;&gt;Order&lt;/code&gt; object does not hold any object references we can manage allocation ourselves and avoid JVM object header overheads. To accomplish that, we need some sort of allocator to store/retrieve objects for us and provide an abstraction over plain memory access. SLAB is one of simpler allocators that can achieve that. I’ve used the simplest form of SLAB, similar to Linux SLOB allocator (&lt;a href=&quot;https://github.com/romanmarkunas-com/0010-memory-optimization/blob/d10605bfb9538ba26cc8439e6c3fd209b2637aeb/src/main/java/com/romanmarkunas/blog/memory/example16/OrderSlabAllocator.java#L12&quot;&gt;see source&lt;/a&gt;), with a following interface:&lt;/p&gt;
+
+&lt;div class=&quot;language-java highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;kd&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;class&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;OrderSlabAllocator&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+
+    &lt;span class=&quot;kd&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;allocate&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;();&lt;/span&gt;
+    &lt;span class=&quot;kd&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;OrderView&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;get&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;key&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+    &lt;span class=&quot;kd&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;void&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;free&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;key&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Using this store we no longer need to store a reference to &lt;code class=&quot;highlighter-rouge&quot;&gt;Order&lt;/code&gt; object, but only an object key within allocator. In this case key would correspond to some contiguous chuck of memory. However, we still would like a simplicity of using familiar getter/setter API, instead of manipulating bits in memory. To do this we can utilize a flyweight pattern:&lt;/p&gt;
+
+&lt;div class=&quot;language-java highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;kd&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;final&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;class&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;OrderView&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+
+    &lt;span class=&quot;kd&quot;&gt;private&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;final&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;PooledByteArrayMap&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;byteArrayPool&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+
+    &lt;span class=&quot;kd&quot;&gt;private&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;ByteBuffer&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;buffer&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;kd&quot;&gt;private&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;startPosition&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+
+
+    &lt;span class=&quot;nc&quot;&gt;OrderView&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;PooledByteArrayMap&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;byteArrayPool&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;this&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;byteArrayPool&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;byteArrayPool&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+
+    &lt;span class=&quot;nc&quot;&gt;OrderView&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;wrap&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;ByteBuffer&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;buffer&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;startPosition&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;this&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;buffer&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;buffer&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;this&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;startPosition&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;startPosition&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;this&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+
+    &lt;span class=&quot;kd&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;OrderView&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;set&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;
+            &lt;span class=&quot;kt&quot;&gt;long&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;id&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt;
+            &lt;span class=&quot;kt&quot;&gt;byte&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;[]&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;user&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt;
+            &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;articleNr&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt;
+            &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;count&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt;
+            &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;pricePence&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt;
+            &lt;span class=&quot;nc&quot;&gt;String&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;addressNumber&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt;
+            &lt;span class=&quot;nc&quot;&gt;String&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;addressStreet&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt;
+            &lt;span class=&quot;nc&quot;&gt;String&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;addressCity&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt;
+            &lt;span class=&quot;nc&quot;&gt;String&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;addressRegion&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt;
+            &lt;span class=&quot;nc&quot;&gt;String&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;addressPostCode&lt;/span&gt;
+    &lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;n&quot;&gt;buffer&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;putLong&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;startPosition&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;ID_OFFSET&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;id&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+        &lt;span class=&quot;n&quot;&gt;buffer&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;putInt&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;startPosition&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;USER_OFFSET&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;byteArrayPool&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;put&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;user&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;));&lt;/span&gt;
+        &lt;span class=&quot;c1&quot;&gt;// other fields write omitted&lt;/span&gt;
+        &lt;span class=&quot;n&quot;&gt;buffer&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;putInt&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;startPosition&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;ADDRESSNUMBER_OFFSET&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;internString&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;addressNumber&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;));&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;this&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+
+
+    &lt;span class=&quot;kd&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;long&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;getId&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;buffer&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;getLong&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;startPosition&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;ID_OFFSET&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+    &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+
+    &lt;span class=&quot;kd&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;byte&lt;/span&gt; &lt;span class=&quot;nd&quot;&gt;@ImmutableByteArray&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;[]&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;getUser&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;byteArrayPool&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;get&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;getUserPoolKey&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;());&lt;/span&gt;
+    &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+
+    &lt;span class=&quot;kd&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;String&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;getAddressNumber&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;addressNumber&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;buffer&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;getInt&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;startPosition&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;ADDRESSNUMBER_OFFSET&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;restoreString&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;addressNumber&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+    &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+
+    &lt;span class=&quot;c1&quot;&gt;// the rest of getters are omitted&lt;/span&gt;
+
+    &lt;span class=&quot;kd&quot;&gt;private&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;internString&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;String&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;str&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;byteArrayPool&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;put&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;str&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;getBytes&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;StandardCharsets&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;US_ASCII&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;));&lt;/span&gt;
+    &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+
+    &lt;span class=&quot;nd&quot;&gt;@SuppressWarnings&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;byte.array.weakening&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+    &lt;span class=&quot;kd&quot;&gt;private&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;String&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;restoreString&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;key&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;String&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;byteArrayPool&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;get&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;key&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;),&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;StandardCharsets&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;US_ASCII&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+    &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;We only need single instance of &lt;code class=&quot;highlighter-rouge&quot;&gt;OrderView&lt;/code&gt; to manipulate orders. When we ask allocator for an order, it would wrap this view around correct memory location and allow us to use order as if it was bog-standard POJO.&lt;/p&gt;
+
+&lt;p&gt;This technique is one step away from doing off-heap storage, where byte buffers are replaced with appropriate &lt;code class=&quot;highlighter-rouge&quot;&gt;DirectBuffer&lt;/code&gt; or &lt;code class=&quot;highlighter-rouge&quot;&gt;MappedByteBuffer&lt;/code&gt;. Compression technique can also be more beneficial when applied after this step, because having multiple orders compressed together is more likely to contain repetitive data allowing for better compression.&lt;/p&gt;
+
+&lt;p&gt;This storage pattern also has an added performance benefit, as memory access is much more cache-friendly.&lt;/p&gt;
+
+&lt;p&gt;This approach lets us fit 814900 orders (+19%), which is 82 bytes (-16) per object.&lt;/p&gt;
+
+&lt;h2&gt;Conclusion&lt;/h2&gt;
+
+&lt;p&gt;Working through multiple optimization techniques we were able to reduce memory consumption by 300% (4 times). This is quite good result for data, which is not highly compressible. Of course, there is an inherent limit on what can be fit in given unit of memory. This limit is defined by the amount of data represented using minimal viable types, and can be reduced only by data sharing between objects or compression.&lt;/p&gt;
+
+&lt;p&gt;For this particular example, we have not reached that limit yet. Higher data density can be achieved by changing key types from &lt;code class=&quot;highlighter-rouge&quot;&gt;int&lt;/code&gt; to 3 bytes (we know we cannot have more than 2^23 object fit into memory anyway) and compressing SLABs.&lt;/p&gt;
+</description>
+                <pubDate>Thu, 10 Sep 2020 00:00:00 +0100</pubDate>
+                <link>https://romanmarkunas.com/performance/2020/09/10/0012-performance-reducing-jvm-memory-footprint-3-off-heap/</link>
+                <guid isPermaLink="true">https://romanmarkunas.com/performance/2020/09/10/0012-performance-reducing-jvm-memory-footprint-3-off-heap/</guid>
+                
+                <category>performance</category>
+                
+                <category>java</category>
+                
+                <category>memory</category>
+                
+            </item>
         
             <item>
                 <title>Reducing JVM heap size, part 2: Optimizing</title>
@@ -15,25 +304,25 @@
 
 &lt;p&gt;In part 2, we will take a look on couple of techniques used to reduce JVM heap size. &lt;!--more--&gt; The techniques listed in the order of least invasive to most, so that optimization does just enough for application to work and keeps it as maintainable as possible. The example application can be found in &lt;a href=&quot;/performance/2020/07/01/0010-performance-reducing-jvm-memory-footprint-1-profile/&quot;&gt;part 1&lt;/a&gt; or in &lt;a href=&quot;https://github.com/romanmarkunas-com/0010-memory-optimization&quot;&gt;example source code&lt;/a&gt;.&lt;/p&gt;
 
-&lt;h2&gt;Memory optimisation - data structures&lt;/h2&gt;
+&lt;h2&gt;Memory efficient data structures&lt;/h2&gt;
 
-&lt;p&gt;As mentioned before we could fit around 204500 orders/54600 users into 64M heap. Let’s take a look on how we can improve this.&lt;/p&gt;
+&lt;p&gt;As mentioned in part 1 we could fit around 204500 orders/54600 users into 64M heap. Let’s take a look on how we can improve this.&lt;/p&gt;
 
 &lt;p&gt;The least intrusive change is usually changing data structures that hold objects. These usually conform to some of Java collection interfaces and changing them would not introduce much change in the code. Let’s see how much memory we can save by doing so.&lt;/p&gt;
 
-&lt;p&gt;First obvious candidate would be &lt;code class=&quot;highlighter-rouge&quot;&gt;ArrayList&lt;/code&gt; as it’s no arg constructor would create a list which will have capacity of 10 after first insertion. However we have around 200K orders across 50K users, which brings the average number of orders per list to 4. We can be aggressive and set that size to 1 initially. That gives us 209000 orders/54900 users. Easy win, but only 2%.&lt;/p&gt;
+&lt;p&gt;The first obvious candidate would be &lt;code class=&quot;highlighter-rouge&quot;&gt;ArrayList&lt;/code&gt; as it’s no arg constructor would create a list which will have capacity of 10 after first insertion. However, we have around 200K orders across 50K users, which brings the average number of orders per list to 4. We can be aggressive and set that size to 1 initially. That gives us 209000 orders/54900 users - an easy win, but only 2%.&lt;/p&gt;
 
-&lt;p&gt;Second optimization has to do with java &lt;code class=&quot;highlighter-rouge&quot;&gt;HashMap&lt;/code&gt;, which uses simple chaining implementation. That is memory efficient only if map key collision rate is low. In our case both order and user ids is about 18% (&lt;a href=&quot;https://github.com/romanmarkunas-com/0010-memory-optimization/blob/master/src/test/java/com/romanmarkunas/blog/memory/example1/HashCollisionTest.java&quot;&gt;see this test&lt;/a&gt;), so there might be potential here. Maps that use open addressing implementation remain memory efficient even with high collision rates. Any open addressing implementation should do, as collision resolution strategy (probing, Robin-Hood, cuckoo, etc) should not significantly impact memory footprint.&lt;/p&gt;
+&lt;p&gt;Second optimization has to do with java &lt;code class=&quot;highlighter-rouge&quot;&gt;HashMap&lt;/code&gt;, which uses simple chaining implementation. That is memory efficient only if map key collision rate is low. In our case both order and user ids collision rate is about 18% (&lt;a href=&quot;https://github.com/romanmarkunas-com/0010-memory-optimization/blob/master/src/test/java/com/romanmarkunas/blog/memory/example1/HashCollisionTest.java&quot;&gt;see this test&lt;/a&gt;), so there might be potential here. Maps that use open addressing implementation remain memory efficient even with high collision rates. Any open addressing implementation should do, as collision resolution strategy (probing, Robin-Hood, cuckoo, etc) should not significantly impact memory footprint.&lt;/p&gt;
 
 &lt;p&gt;I’ll use Agrona &lt;code class=&quot;highlighter-rouge&quot;&gt;Object2ObjectHashMap&lt;/code&gt; to test this. Agrona’s implementation also does not create extra &lt;code class=&quot;highlighter-rouge&quot;&gt;Node&lt;/code&gt; objects, as it stores keys and values as even and odd indexes in the same array. Changing map implementation (&lt;a href=&quot;https://github.com/romanmarkunas-com/0010-memory-optimization/blob/3550717a4e365a87f4000c6ea703a2c4f3d847d1/src/test/java/com/romanmarkunas/blog/memory/OrderStoreMainTest.java#L141&quot;&gt;example 8&lt;/a&gt;) gives us 231500 orders/56000 users, which is significant 11% increase.&lt;/p&gt;
 
-&lt;h2&gt;Memory optimisation - using minimal types to store data&lt;/h2&gt;
+&lt;h2&gt;Using minimal types to store data&lt;/h2&gt;
 
 &lt;p&gt;Let’s take a look at &lt;code class=&quot;highlighter-rouge&quot;&gt;Order&lt;/code&gt; objects themselves.&lt;/p&gt;
 
 &lt;p&gt;First step is to look at the structure of stored values. We want them to have as flat structure as possible, minimizing extra object header overhead. In our case we would just get rid of a boxed type. This brings us to 245900 orders/56600 users, which is another 6%. Quite significant increase for this little work.&lt;/p&gt;
 
-&lt;p&gt;Now when the low hanging fruit was plucked, we should take a look at out value type and evaluate if we represent data with appropriate types.&lt;/p&gt;
+&lt;p&gt;Now when the low hanging fruit has been plucked, we should take a closer look at &lt;code class=&quot;highlighter-rouge&quot;&gt;Order&lt;/code&gt; and evaluate if we represent data with appropriate types.&lt;/p&gt;
 
 &lt;p&gt;In or case, we have another field which is secretly boxed, which is &lt;code class=&quot;highlighter-rouge&quot;&gt;Order#id&lt;/code&gt;. At the moment, this field is just a number, but wrapped as &lt;code class=&quot;highlighter-rouge&quot;&gt;String&lt;/code&gt;. Most times there is no need for id field to be a string, as we can represent enough unique identifiers with a simple number (or a tuple of numbers) and have a &lt;code class=&quot;highlighter-rouge&quot;&gt;Long&lt;/code&gt; keys in a map:&lt;/p&gt;
 
@@ -53,16 +342,16 @@
 &lt;div class=&quot;language-java highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nc&quot;&gt;Map&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;Long&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Order&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ordersById&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Object2ObjectHashMap&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&amp;gt;();&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
 
-&lt;p&gt;By doing so we can fit 276100 order/57900 users, that’s another 12% up. However, we are now forced to waste some memory for autoboxing &lt;code class=&quot;highlighter-rouge&quot;&gt;long&lt;/code&gt;, which we can fix by using primitive collection. There are ready libraries to do this, for example Trove collections. Here I’ll use Agrona, since I’ve already used it in example before:&lt;/p&gt;
+&lt;p&gt;By doing this, we can fit 276100 order/57900 users, and that’s another 12% increase. However, we are now forced to waste some memory for autoboxing &lt;code class=&quot;highlighter-rouge&quot;&gt;long&lt;/code&gt;, which we can fix by using primitive collection. There are ready libraries to do this, for example Trove collections. Here I’ll use Agrona, since I’ve already used it in example before:&lt;/p&gt;
 
 &lt;div class=&quot;language-java highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nc&quot;&gt;Long2ObjectHashMap&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;Order&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ordersById&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Long2ObjectHashMap&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&amp;gt;();&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
 
 &lt;p&gt;That’s 288300 orders/58300 users, which is extra 4%, and the final code can be observed in &lt;a href=&quot;https://github.com/romanmarkunas-com/0010-memory-optimization/blob/3550717a4e365a87f4000c6ea703a2c4f3d847d1/src/test/java/com/romanmarkunas/blog/memory/OrderStoreMainTest.java#L151&quot;&gt;example 9&lt;/a&gt;.&lt;/p&gt;
 
-&lt;h2&gt;Memory optimisation - shared object pool&lt;/h2&gt;
+&lt;h2&gt;Data tokenization and shared object pool&lt;/h2&gt;
 
-&lt;p&gt;At this point most of memory would be occupied by address &lt;code class=&quot;highlighter-rouge&quot;&gt;String&lt;/code&gt;. The problem here is that addresses contain lots of repeating information: cities, post codes, street numbers, names and surnames, etc. What we can try to do, is to break address apart into these components and share repeating instances between &lt;code class=&quot;highlighter-rouge&quot;&gt;Order&lt;/code&gt; values. JVM even has built in &lt;code class=&quot;highlighter-rouge&quot;&gt;String&lt;/code&gt; pool for us to use!&lt;/p&gt;
+&lt;p&gt;At this point most of the memory would be occupied by address &lt;code class=&quot;highlighter-rouge&quot;&gt;String&lt;/code&gt;. The problem here is that addresses contain lots of repeating information: cities, post codes, street numbers, names and surnames, etc. What we can try to do, is to break address apart into separate components (tokens) and share repeating instances between &lt;code class=&quot;highlighter-rouge&quot;&gt;Order&lt;/code&gt; values. JVM even has built in &lt;code class=&quot;highlighter-rouge&quot;&gt;String&lt;/code&gt; pool for us to use!&lt;/p&gt;
 
 &lt;p&gt;I’ve decided to break up address like this:&lt;/p&gt;
 
@@ -83,7 +372,7 @@
 &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
 
-&lt;p&gt;Without pooling we can only fit 144200 orders/50000 users into memory, which again proves that object header overhead is very significant. It might seem like a step back, but let’s turn &lt;code class=&quot;highlighter-rouge&quot;&gt;String&lt;/code&gt; pooling on in &lt;code class=&quot;highlighter-rouge&quot;&gt;Order&lt;/code&gt; constructor (&lt;a href=&quot;https://github.com/romanmarkunas-com/0010-memory-optimization/blob/3550717a4e365a87f4000c6ea703a2c4f3d847d1/src/test/java/com/romanmarkunas/blog/memory/OrderStoreMainTest.java#L161&quot;&gt;example 10&lt;/a&gt;):&lt;/p&gt;
+&lt;p&gt;Without pooling, we can only fit 144200 orders/50000 users into memory, which again proves that object header overhead is very significant. It might seem like a step back, but let’s turn &lt;code class=&quot;highlighter-rouge&quot;&gt;String&lt;/code&gt; pooling on in &lt;code class=&quot;highlighter-rouge&quot;&gt;Order&lt;/code&gt; constructor (&lt;a href=&quot;https://github.com/romanmarkunas-com/0010-memory-optimization/blob/3550717a4e365a87f4000c6ea703a2c4f3d847d1/src/test/java/com/romanmarkunas/blog/memory/OrderStoreMainTest.java#L161&quot;&gt;example 10&lt;/a&gt;):&lt;/p&gt;
 
 &lt;div class=&quot;language-java highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nd&quot;&gt;@JsonCreator&lt;/span&gt;
 &lt;span class=&quot;kd&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;Order&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;
@@ -102,11 +391,11 @@
 &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
 
-&lt;p&gt;which let’s us fit 386000 orders/61000 users into memory (+34%)! JVM since version 7 does not allocate interned &lt;code class=&quot;highlighter-rouge&quot;&gt;String&lt;/code&gt; objects in native memory, therefore this gain is fair comparison (this can be double checked by running JVM with flags &lt;code class=&quot;highlighter-rouge&quot;&gt;-XX:+UnlockDiagnosticVMOptions -XX:NativeMemoryTracking=summary -XX:+PrintNMTStatistics&lt;/code&gt; and inspecting memory usage).&lt;/p&gt;
+&lt;p&gt;which lets us fit 386000 orders/61000 users into memory (+34%)! JVMs with version 7 and higher do not allocate interned &lt;code class=&quot;highlighter-rouge&quot;&gt;String&lt;/code&gt; objects in native memory, therefore this gain is fair comparison (this can be confirmed by running JVM with flags &lt;code class=&quot;highlighter-rouge&quot;&gt;-XX:+UnlockDiagnosticVMOptions&lt;/code&gt;, &lt;code class=&quot;highlighter-rouge&quot;&gt;-XX:NativeMemoryTracking=summary&lt;/code&gt;, &lt;code class=&quot;highlighter-rouge&quot;&gt;-XX:+PrintNMTStatistics&lt;/code&gt; and inspecting memory usage).&lt;/p&gt;
 
-&lt;p&gt;As far as I know, &lt;code class=&quot;highlighter-rouge&quot;&gt;String&lt;/code&gt; pool is the only JVM pool which is usable by application, because &lt;code class=&quot;highlighter-rouge&quot;&gt;Integer&lt;/code&gt; pool goes only up to 128. However, it shouldn’t be hard to pool any user defined object. Usability of this method depends on how much of data is repeating and how it could be split and the object overhead of internal pool implementation (e.g. be careful with tree-like collections which allocate extra object for every node).&lt;/p&gt;
+&lt;p&gt;As far as I know, &lt;code class=&quot;highlighter-rouge&quot;&gt;String&lt;/code&gt; pool is the only JVM pool which is usable to applications (in contrast, &lt;code class=&quot;highlighter-rouge&quot;&gt;Integer&lt;/code&gt; pool goes only up to number 128). However, it shouldn’t be hard to pool any user defined object. Usability of this method depends on how much of data is repeating and how it could be split. Developers, considering this technique, should bear in mind object overhead of internal pool implementation (e.g. be careful with tree-like collections which allocate extra objects for every node).&lt;/p&gt;
 
-&lt;h2&gt;Memory optimisation - data encoding&lt;/h2&gt;
+&lt;h2&gt;Data encoding&lt;/h2&gt;
 
 &lt;p&gt;Compression approach can save some memory at the expense of processing power and code maintainability as switching form JDK types to custom ones limits the usage of library methods.&lt;/p&gt;
 
@@ -118,7 +407,7 @@
             &lt;span class=&quot;c1&quot;&gt;// rest omitted&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
 
-&lt;p&gt;and we only need to store reference to string as a map key:&lt;/p&gt;
+&lt;p&gt;and we only need to store reference to string as a map key (&lt;code class=&quot;highlighter-rouge&quot;&gt;byte[]&lt;/code&gt; are not suitable as map keys as they do not override hashCode/equals properly and are mutable):&lt;/p&gt;
 
 &lt;div class=&quot;language-java highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;n&quot;&gt;ordersByUser&lt;/span&gt;
         &lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;computeIfAbsent&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;
@@ -130,9 +419,9 @@
 
 &lt;p&gt;More compact encoding (&lt;a href=&quot;https://github.com/romanmarkunas-com/0010-memory-optimization/blob/3550717a4e365a87f4000c6ea703a2c4f3d847d1/src/test/java/com/romanmarkunas/blog/memory/OrderStoreMainTest.java#L175&quot;&gt;example 11&lt;/a&gt;) and not storing extra reference on &lt;code class=&quot;highlighter-rouge&quot;&gt;Order&lt;/code&gt; objects allows us to stuff JVM with 481300 orders/62800 users (+24%).&lt;/p&gt;
 
-&lt;h2&gt;Memory optimisation - ditching references&lt;/h2&gt;
+&lt;h2&gt;Ditching unnecessary references&lt;/h2&gt;
 
-&lt;p&gt;Now we can try to get rid of extra &lt;code class=&quot;highlighter-rouge&quot;&gt;String&lt;/code&gt; object references and store only &lt;code class=&quot;highlighter-rouge&quot;&gt;byte[]&lt;/code&gt;. If we ever need a &lt;code class=&quot;highlighter-rouge&quot;&gt;String&lt;/code&gt; object later in code we can allocate short-lived object for that operation or use a view wrapper. This is somewhat risky, because arrays in Java are not immutable, but let’s see how much memory we can save that way.&lt;/p&gt;
+&lt;p&gt;Now we can try to get rid of extra &lt;code class=&quot;highlighter-rouge&quot;&gt;String&lt;/code&gt; object references and store only &lt;code class=&quot;highlighter-rouge&quot;&gt;byte[]&lt;/code&gt;. If we ever need a &lt;code class=&quot;highlighter-rouge&quot;&gt;String&lt;/code&gt; object later in code we can allocate a short-lived object for that operation or use a view wrapper. This is somewhat risky, because arrays in Java are not immutable, but let’s see how much memory we can save that way.&lt;/p&gt;
 
 &lt;p&gt;Simple type replacement, however, would not work here as our strings are pooled objects. Therefore, we need to roll out our own pool for &lt;code class=&quot;highlighter-rouge&quot;&gt;byte[]&lt;/code&gt;. This is a bit tricky in Java, cause Java arrays do not properly implement &lt;code class=&quot;highlighter-rouge&quot;&gt;hashCode&lt;/code&gt; or &lt;code class=&quot;highlighter-rouge&quot;&gt;equals&lt;/code&gt;, but we can leverage array order and &lt;code class=&quot;highlighter-rouge&quot;&gt;TreeSet&lt;/code&gt;:&lt;/p&gt;
 
@@ -164,9 +453,16 @@
 &lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
 
-&lt;p&gt;This approach (&lt;a href=&quot;https://github.com/romanmarkunas-com/0010-memory-optimization/blob/3550717a4e365a87f4000c6ea703a2c4f3d847d1/src/test/java/com/romanmarkunas/blog/memory/OrderStoreMainTest.java#L186&quot;&gt;example 12&lt;/a&gt;) doesn’t help us much, because by getting rid of some references in &lt;code class=&quot;highlighter-rouge&quot;&gt;Order&lt;/code&gt; object, we’ve created many more references within &lt;code class=&quot;highlighter-rouge&quot;&gt;TreeSet&lt;/code&gt;, and thus for this use-case we can actually fit less objects in memory. Even linear-time array-based implementation does not reduce memory footprint much, which means, that for our data structure this optimization is not useful.&lt;/p&gt;
+&lt;div class=&quot;language-java highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nc&quot;&gt;ObjectMapper&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;mapper&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;ObjectMapper&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;();&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;mapper&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;setInjectableValues&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;InjectableValues&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;Std&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;().&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;addValue&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;
+        &lt;span class=&quot;nc&quot;&gt;ByteArrayPool&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;class&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; 
+        &lt;span class=&quot;k&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;TreeBasedByteArrayPool&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;()&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;));&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
 
-&lt;h2&gt;Memory optimisation - object compression&lt;/h2&gt;
+&lt;p&gt;This approach (&lt;a href=&quot;https://github.com/romanmarkunas-com/0010-memory-optimization/blob/3550717a4e365a87f4000c6ea703a2c4f3d847d1/src/test/java/com/romanmarkunas/blog/memory/OrderStoreMainTest.java#L186&quot;&gt;example 12&lt;/a&gt;) doesn’t help us much, because by getting rid of some references in &lt;code class=&quot;highlighter-rouge&quot;&gt;Order&lt;/code&gt; object, we’ve created many more references within &lt;code class=&quot;highlighter-rouge&quot;&gt;TreeSet&lt;/code&gt;, and thus for this use-case we can actually fit fewer objects in memory. Even linear-time array-based implementation does not reduce memory footprint much, which means, that for our data structure this tree-like pool implementation is not sufficient. More elaborate pool implementation, based on open-addressing, is used in further &lt;a href=&quot;https://github.com/romanmarkunas-com/0010-memory-optimization/blob/4d945595b879dde6395ecb619f613083a113f7d3/src/main/java/com/romanmarkunas/blog/memory/example14/PooledByteArrayMap.java#L7&quot;&gt;example 14&lt;/a&gt; of &lt;a href=&quot;/performance/2020/09/10/0012-performance-reducing-jvm-memory-footprint-3-off-heap/&quot;&gt;part 3&lt;/a&gt;.&lt;/p&gt;
+
+&lt;h2&gt;Object compression&lt;/h2&gt;
 
 &lt;p&gt;Now what if we could compress the whole &lt;code class=&quot;highlighter-rouge&quot;&gt;Order&lt;/code&gt; object? In our case we must only compress fields which are not shared between &lt;code class=&quot;highlighter-rouge&quot;&gt;Order&lt;/code&gt; instances (non-address fields are &lt;code class=&quot;highlighter-rouge&quot;&gt;transient&lt;/code&gt;), hence we end up with something like this (&lt;a href=&quot;https://github.com/romanmarkunas-com/0010-memory-optimization/blob/3550717a4e365a87f4000c6ea703a2c4f3d847d1/src/test/java/com/romanmarkunas/blog/memory/OrderStoreMainTest.java#L197&quot;&gt;example 13&lt;/a&gt;):&lt;/p&gt;
 
@@ -200,11 +496,13 @@
 &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
 
-&lt;p&gt;In our case this also does not give any memory reduction, as we are only compressing couple of primitive fields. This technique is much more useful where it is impossible to share much data between retained objects.&lt;/p&gt;
+&lt;p&gt;In our case this also does not give any memory reduction, as we are only compressing couple of primitive fields. This technique is much more useful where it is impossible to share much data between retained objects or object does not contain references. This technique can prove more useful in conjunction with manual memory management described in next &lt;a href=&quot;/performance/2020/09/10/0012-performance-reducing-jvm-memory-footprint-3-off-heap/&quot;&gt;part&lt;/a&gt;.&lt;/p&gt;
 
 &lt;h2&gt;Conclusion&lt;/h2&gt;
 
-&lt;p&gt;Using appropriate data structures, variable types, compression and pooling we have reduced memory consumption by 135% (fitting 481300 orders instead of 204500). More memory usage reduction can be achieved by bulk compressing larger chunks of data together or moving off-heap. These however impact code and architecture quite a bit and must be considered along with data sharding approaches.&lt;/p&gt;
+&lt;p&gt;Using appropriate data structures, variable types, compression and pooling we have reduced memory consumption by 135% or 2.35 times (fitting 481300 orders instead of 204500).&lt;/p&gt;
+
+&lt;p&gt;More memory usage reduction can be achieved by bulk compressing larger chunks of data together or moving off-heap, which is covered in &lt;a href=&quot;/performance/2020/09/10/0012-performance-reducing-jvm-memory-footprint-3-off-heap/&quot;&gt;part 3&lt;/a&gt;. These however impact code and architecture quite a bit and must be considered along with data sharding approaches.&lt;/p&gt;
 </description>
                 <pubDate>Wed, 01 Jul 2020 00:00:00 +0100</pubDate>
                 <link>https://romanmarkunas.com/performance/2020/07/01/0011-performance-reducing-jvm-memory-footprint-2-optimizing/</link>
@@ -1430,213 +1728,6 @@ Avg latency    - 11.018564
                 <category>messaging</category>
                 
                 <category>low latency</category>
-                
-            </item>
-        
-            <item>
-                <title>Introduction to Java coroutines</title>
-                <description>&lt;p&gt;Many times I find an ExecutorService with 400 threads in Java code and I always got that’s-not-ok feeling of that. This is usually introduced as necessary evil to retain application responsiveness while being blocked by downstream. However there is another way of achieving responsiveness, which is couroutines (alternatively known also as green threads and non-blocking threads in another languages). Java doesn’t support coroutines at language level, so for this example we will use almost exclusive Java implementation of coroutines - Quasar.&lt;/p&gt;
-
-&lt;!--more--&gt;
-
-&lt;p&gt;Let’s consider a &lt;a href=&quot;https://en.wikipedia.org/wiki/Spherical_cow&quot;&gt;“spherical example in vacuum”&lt;/a&gt; here. BTW, all code can be found &lt;a href=&quot;https://github.com/romanmarkunas/blog-fibers-intro&quot;&gt;here&lt;/a&gt;.&lt;/p&gt;
-
-&lt;h2&gt;Slow blocking service for testing purposes&lt;/h2&gt;
-&lt;p&gt;Suppose we have microservice architecture application where service A must query service B before it can respond (alternatively it could be a task in background, which execution completion must be constantly monitored). We can emulate that slow service with contrived Jersey resource:&lt;/p&gt;
-
-&lt;div class=&quot;language-java highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nd&quot;&gt;@Path&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;SlowResource&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;PATH&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
-&lt;span class=&quot;kd&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;class&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;SlowResource&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
-
-    &lt;span class=&quot;kd&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;static&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;final&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;String&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;PATH&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&quot;/slow-service&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
-
-    &lt;span class=&quot;kd&quot;&gt;private&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;final&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;AtomicInteger&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;counter&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;AtomicInteger&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
-
-    &lt;span class=&quot;nd&quot;&gt;@GET&lt;/span&gt;
-    &lt;span class=&quot;kd&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;slowServiceInvocations&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;throws&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;InterruptedException&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
-        &lt;span class=&quot;nc&quot;&gt;Thread&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;sleep&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1000&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
-        &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;this&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;counter&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;incrementAndGet&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;();&lt;/span&gt;
-    &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
-&lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
-
-&lt;p&gt;If you are unfamiliar with JAX-RS (let those servlets go, it’s 2018), &lt;a href=&quot;https://jersey.github.io/documentation/latest/jaxrs-resources.html&quot;&gt;here&lt;/a&gt; is a little description. Also, I’ll use Dropwizard framework to create a service, however syntax must be obvious to Spring boot or any other Java HTTP library users as well. I will not post it here because service implementation is out of scope of this post.&lt;/p&gt;
-
-&lt;p&gt;This resource accepts &lt;code class=&quot;highlighter-rouge&quot;&gt;GET&lt;/code&gt; requests and having that it sleeps for 1 second and then returns body containing invocation number. That number will be useful later on to visualize what happened during test runs.&lt;/p&gt;
-
-&lt;h2&gt;Test setup for thread and coroutine examples&lt;/h2&gt;
-&lt;p&gt;Let’s emulate our calls to our slow service in test suite. Following handy Dropwizard rule will create a fresh embedded server with blocking resource for each test:&lt;/p&gt;
-
-&lt;div class=&quot;language-java highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nd&quot;&gt;@Rule&lt;/span&gt;
-&lt;span class=&quot;kd&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;DropwizardAppRule&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;Configuration&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;app&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;DropwizardAppRule&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&amp;gt;(&lt;/span&gt;
-        &lt;span class=&quot;nc&quot;&gt;SlowApplication&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;class&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt;
-        &lt;span class=&quot;nc&quot;&gt;ResourceHelpers&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;resourceFilePath&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;slow.yml&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
-&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
-
-&lt;p&gt;Now let’s make our call routine which will be shared between thread and coroutine example:&lt;/p&gt;
-
-&lt;div class=&quot;language-java highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nd&quot;&gt;@Suspendable&lt;/span&gt;
-&lt;span class=&quot;kd&quot;&gt;private&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;void&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;longTask&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;long&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;baseline&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Client&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;client&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
-    &lt;span class=&quot;kt&quot;&gt;long&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;start&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;millisSince&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;baseline&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
-
-    &lt;span class=&quot;nc&quot;&gt;Response&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;response&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;client&lt;/span&gt;
-            &lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;target&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;String&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;format&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;
-                    &lt;span class=&quot;s&quot;&gt;&quot;http://localhost:%d/slow-service&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt;
-                    &lt;span class=&quot;n&quot;&gt;app&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;getLocalPort&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;()))&lt;/span&gt;
-            &lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;request&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;()&lt;/span&gt;
-            &lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;get&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;();&lt;/span&gt;
-    &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;invocation&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;response&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;readEntity&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;class&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
-    &lt;span class=&quot;n&quot;&gt;response&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;close&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;();&lt;/span&gt;
-
-    &lt;span class=&quot;nc&quot;&gt;System&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;out&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;println&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;String&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;format&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;
-            &lt;span class=&quot;s&quot;&gt;&quot;Invocation %d started at %d and finished within %d ms&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt;
-            &lt;span class=&quot;n&quot;&gt;invocation&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt;
-            &lt;span class=&quot;n&quot;&gt;start&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt;
-            &lt;span class=&quot;n&quot;&gt;millisSince&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;baseline&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;start&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;));&lt;/span&gt;
-&lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
-
-&lt;span class=&quot;kd&quot;&gt;private&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;static&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;long&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;millisSince&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;long&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;since&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
-    &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;System&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;currentTimeMillis&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;since&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
-&lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
-
-&lt;p&gt;Here we use Jersey client to make calls to service. Note that we record both time when routine started relative to test start time (&lt;code class=&quot;highlighter-rouge&quot;&gt;baseline&lt;/code&gt;) and routine execution duration. Ignore &lt;code class=&quot;highlighter-rouge&quot;&gt;@Suspendable&lt;/code&gt; for now, we’ll come back to it later.&lt;br /&gt;
-For testing purposes let’s use a smaller thread pool of size 2:&lt;/p&gt;
-
-&lt;div class=&quot;language-java highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nd&quot;&gt;@Before&lt;/span&gt; 
-&lt;span class=&quot;kd&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;void&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;setUp&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
-     &lt;span class=&quot;k&quot;&gt;this&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;executor&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Executors&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;newFixedThreadPool&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;2&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
-&lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
-
-&lt;h2&gt;Blocking example with Java executor&lt;/h2&gt;
-&lt;div class=&quot;language-java highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nd&quot;&gt;@Test&lt;/span&gt;
-&lt;span class=&quot;kd&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;void&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;threads&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;throws&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Exception&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
-    &lt;span class=&quot;kt&quot;&gt;long&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;baseline&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;System&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;currentTimeMillis&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;();&lt;/span&gt;
-    &lt;span class=&quot;k&quot;&gt;for&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;i&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;i&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;CALLS&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;i&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;++)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
-        &lt;span class=&quot;k&quot;&gt;this&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;executor&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;execute&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(()&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt;
-                &lt;span class=&quot;n&quot;&gt;longTask&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;baseline&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;ClientBuilder&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;newClient&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;()));&lt;/span&gt;
-    &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
-    &lt;span class=&quot;k&quot;&gt;this&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;executor&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;shutdown&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;();&lt;/span&gt;
-    &lt;span class=&quot;k&quot;&gt;this&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;executor&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;awaitTermination&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;30&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;TimeUnit&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;SECONDS&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
-    &lt;span class=&quot;nc&quot;&gt;System&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;out&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;println&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;String&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;format&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;
-            &lt;span class=&quot;s&quot;&gt;&quot;Thread execution took %d ms&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt;
-            &lt;span class=&quot;nc&quot;&gt;System&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;currentTimeMillis&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;baseline&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
-    &lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
-&lt;span class=&quot;o&quot;&gt;}&lt;/span&gt; 
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
-&lt;p&gt;If we run this, we get something like:&lt;/p&gt;
-&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;Invocation 2 started at 104 and finished within 1831 ms 
-Invocation 1 started at 112 and finished within 1828 ms 
-Invocation 3 started at 1952 and finished within 1052 ms 
-Invocation 4 started at 1946 and finished within 1071 ms 
-Invocation 5 started at 3009 and finished within 1116 ms 
-... 
-Thread execution took 6646 ms 
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
-
-&lt;p&gt;First 2 long tasks start immediately, since we have 2 threads available in pool. However other subsequent tasks cannot start and are put into thread pool’s queue waiting to be picked up. This way  blocking calls stop execution and our application just burns CPU cycles doing nothing (but showing 100% utilization).&lt;/p&gt;
-
-&lt;p&gt;As mentioned before the natural response may be to increase number of threads in pool to have more threads in waiting state and have space for new incoming requests to start their execution ASAP. Let’s see how this can be managed with coroutines.&lt;/p&gt;
-
-&lt;h2&gt;Non-blocking Quasar coroutines&lt;/h2&gt;
-&lt;p&gt;Coroutine test is a bit more elaborate:&lt;/p&gt;
-&lt;div class=&quot;language-java highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nd&quot;&gt;@Test&lt;/span&gt;
-&lt;span class=&quot;kd&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;void&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;fibers&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;throws&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Exception&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
-    &lt;span class=&quot;kt&quot;&gt;long&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;baseline&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;System&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;currentTimeMillis&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;();&lt;/span&gt;
-    &lt;span class=&quot;nc&quot;&gt;List&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;Fiber&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;Void&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;fibers&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;ArrayList&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&amp;gt;();&lt;/span&gt;
-    &lt;span class=&quot;nc&quot;&gt;FiberExecutorScheduler&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;scheduler&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;FiberExecutorScheduler&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;
-            &lt;span class=&quot;s&quot;&gt;&quot;default&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt;
-            &lt;span class=&quot;k&quot;&gt;this&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;executor&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
-
-    &lt;span class=&quot;k&quot;&gt;for&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;i&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;i&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;CALLS&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;i&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;++)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
-        &lt;span class=&quot;nc&quot;&gt;Fiber&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;Void&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;fiber&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Fiber&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;Void&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;scheduler&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
-            &lt;span class=&quot;nd&quot;&gt;@Override&lt;/span&gt;
-            &lt;span class=&quot;kd&quot;&gt;protected&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Void&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;run&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;throws&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;SuspendExecution&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;InterruptedException&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
-                &lt;span class=&quot;n&quot;&gt;longTask&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;baseline&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;AsyncClientBuilder&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;newClient&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;());&lt;/span&gt;
-                &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;kc&quot;&gt;null&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
-            &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
-        &lt;span class=&quot;o&quot;&gt;}.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;start&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;();&lt;/span&gt;
-        &lt;span class=&quot;n&quot;&gt;fibers&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;add&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;fiber&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
-    &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
-
-    &lt;span class=&quot;k&quot;&gt;for&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;Fiber&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;fiber&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;fibers&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
-        &lt;span class=&quot;n&quot;&gt;fiber&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;join&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;30&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;TimeUnit&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;SECONDS&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
-    &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
-    &lt;span class=&quot;nc&quot;&gt;System&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;out&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;println&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;String&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;format&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;
-            &lt;span class=&quot;s&quot;&gt;&quot;Fiber execution took %d ms&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt;
-            &lt;span class=&quot;nc&quot;&gt;System&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;currentTimeMillis&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;baseline&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;));&lt;/span&gt;
-&lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
-&lt;p&gt;This is due to fact that Quasar library does not have ExecutorService analogue for coroutines (called fibers in Quasar). This is somewhat logical and I had to put in future collection algorithm to make sure fibers will finish before test returns. In real-life scenarios you would not need to do that, because long running tasks idiomatically must be handled via &lt;code class=&quot;highlighter-rouge&quot;&gt;@AsyncResponse&lt;/code&gt; in Java web services. Codewise, thread example looks like fiber one less &lt;code class=&quot;highlighter-rouge&quot;&gt;Future&lt;/code&gt; collection code.&lt;/p&gt;
-
-&lt;p&gt;One thing that is different is usage of asynchronous version of Jersey client. This is because asynchronous code of some libraries is automatically instrumented by Quasar COMSAT package (see below).&lt;/p&gt;
-
-&lt;p&gt;Please note that &lt;code class=&quot;highlighter-rouge&quot;&gt;FiberExecutorScheduler&lt;/code&gt; uses same 2-thread executor to run tasks as in previous blocking thread example.  Let’s run the test via gradle task (see below why) and voila:&lt;/p&gt;
-&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;Invocation 1 started at 135 and finished within 1209 ms 
-Invocation 2 started at 119 and finished within 1226 ms 
-Invocation 3 started at 197 and finished within 1152 ms 
-Invocation 4 started at 230 and finished within 1155 ms 
-Invocation 5 started at 238 and finished within 1147 ms 
-... 
-Fiber execution took 1661 ms 
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
-
-&lt;p&gt;All invocations started at approximately same time and finished within 2 s. In this case threads are not blocked by waiting and we could actually manage huge amount of requests with little threads (generally same size as number of CPU cores).&lt;/p&gt;
-
-&lt;h2&gt;Conclusion&lt;/h2&gt;
-&lt;p&gt;To wrap it all in one sentence, threads must be used as a mean of parallelism, but coroutines as means of multitasking. Java thread is directly mapped onto OS thread and is abstraction over hardware implementation. It is optimal for high-throughput application to have same number of threads as cores, in order to have full parallelism and minimal switching. Coroutines allow to use that resource on full to avoid CPU being stalled when waiting for network or file IO.&lt;/p&gt;
-
-&lt;h2&gt;Objections?&lt;/h2&gt;
-&lt;h4&gt;This could be solved by async client only!&lt;/h4&gt;
-&lt;p&gt;True, however when we have more code than this simple test and if we have multiple blocking calls during one operation, code becomes highly nested (see &lt;a href=&quot;http://callbackhell.com/&quot;&gt;callback hell&lt;/a&gt;).&lt;/p&gt;
-
-&lt;p&gt;During debugging unclear path of execution an obscure stack traces may be very confusing and counter productive. Coroutines allow to maintain sequential logic of execution, while still avoiding blocking.&lt;/p&gt;
-
-&lt;h4&gt;Yet another library to learn&lt;/h4&gt;
-&lt;p&gt;True. I will completely agree that for many applications there is no huge performance requirements and spinning 500 blocked threads is a viable solution.&lt;/p&gt;
-
-&lt;p&gt;All new libraries must be justified to be used and no performance optimizations must be done without defined performance requirements or before application logic is working as per requirements. However, once you need performance, using coroutines is crucial as it fits first optimization level (IO-bound optimizations).&lt;/p&gt;
-
-&lt;h4&gt;Does this all come for free?&lt;/h4&gt;
-&lt;p&gt;Unfortunately no. This quick blog post does not highlight some important details needed in order for example code to work. Since Java does not have language support for coroutines, some joggling is needed to successfully utilize Quasar coroutines.&lt;/p&gt;
-
-&lt;p&gt;First, in order for coroutines to work compiled Java bytecode must be instrumented (changed). This is why if you try to launch tests directly via IDE or other JUnit runner you will get&lt;/p&gt;
-&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;java.lang.IllegalArgumentException: Fiber class com.romanmarkunas.blog.fibers.intro.server.SlowApplicationTest$1 has not been instrumented. 
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
-
-&lt;p&gt;Note this line in gradle &lt;code class=&quot;highlighter-rouge&quot;&gt;test&lt;/code&gt; task:&lt;/p&gt;
-&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;jvmArgs &quot;-javaagent:${configurations.quasar.iterator().next()}&quot; 
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
-
-&lt;p&gt;This adds javaagent argument to JVM launch line (more on java agents see &lt;a href=&quot;https://docs.oracle.com/javase/7/docs/api/java/lang/instrument/package-summary.html&quot;&gt;here&lt;/a&gt;). Here is very brief explanation of what it does. During class loading registered agents will scan loaded class for methods that have &lt;code class=&quot;highlighter-rouge&quot;&gt;@Suspended&lt;/code&gt; annotation or &lt;code class=&quot;highlighter-rouge&quot;&gt;throws SuspendedException&lt;/code&gt; in signature. Those will be modified to allow saving stack into memory and suspend execution during specific calls.&lt;/p&gt;
-
-&lt;p&gt;This means that there is some negative consequence:&lt;/p&gt;
-&lt;ol&gt;
-  &lt;li&gt;overhead during classloading&lt;/li&gt;
-  &lt;li&gt;developers must be careful to put all method signatures correctly&lt;/li&gt;
-  &lt;li&gt;it creates connection between how code is written and launched&lt;/li&gt;
-  &lt;li&gt;if you are using existing library to perform IO it may not have methods correctly annotated. If it’s not the case you may need to create your own modification of library to be used together with fibers. In this example I used jersey async client library which already has modified fiber-friendly version:&lt;/li&gt;
-&lt;/ol&gt;
-
-&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;testCompile 'co.paralleluniverse:comsat-jax-rs-client:0.7.0' 
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
-</description>
-                <pubDate>Mon, 02 Apr 2018 00:00:00 +0100</pubDate>
-                <link>https://romanmarkunas.com/concurrency/2018/04/02/0002-concurrency-introduction-to-java-coroutines/</link>
-                <guid isPermaLink="true">https://romanmarkunas.com/concurrency/2018/04/02/0002-concurrency-introduction-to-java-coroutines/</guid>
-                
-                <category>coroutines</category>
-                
-                <category>java</category>
-                
-                <category>concurrency</category>
-                
-                <category>multithreading</category>
-                
-                <category>non-blocking IO</category>
-                
-                <category>quasar</category>
                 
             </item>
         
